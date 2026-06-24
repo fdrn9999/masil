@@ -4,10 +4,16 @@ export function makeStage(root, backgrounds) {
   const nameEl = root.querySelector('#name');
   const lineEl = root.querySelector('#line');
 
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
   function renderTags(text) {
-    return text
-      .replace(/\{w=[\d.]+\}/g, '').replace(/\{p\}/g, '\n')
-      .replace(/\{i\}/g, '<em>').replace(/\{\/i\}/g, '</em>');
+    return escapeHtml(text)
+      .replace(/\{w=[\d.]+\}/g, '')
+      .replace(/\{p\}/g, '\n')
+      .replace(/\{i\}/g, '<em>')
+      .replace(/\{\/i\}/g, '</em>');
   }
   return {
     scene({ bg }) { if (bg && backgrounds[bg]) stage.style.backgroundColor = backgrounds[bg]; },
