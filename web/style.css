@@ -1,0 +1,22 @@
+:root { --bg:#15171f; --ink:#eef0f6; }
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; background:#000; color:var(--ink);
+  font-family: "Pretendard", system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+#game { position: relative; width: 100vw; height: 100vh; max-width: calc(100vh * 16 / 9);
+  margin: 0 auto; overflow: hidden; }
+#stage { position:absolute; inset:0; transition: background-color .4s ease; background:#000; }
+.hidden { display:none !important; }
+#textbox { position:absolute; left:0; right:0; bottom:0; min-height:26%;
+  background:#0b0d14d9; padding: 5% 6% 6%; cursor:pointer; }
+#name { font-weight:700; font-size: clamp(16px,2.6vw,24px); margin-bottom:.4em; }
+#line { font-size: clamp(15px,2.4vw,22px); line-height:1.65; white-space:pre-wrap; }
+#choices { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
+  align-items:center; gap:14px; background:#0008; padding:8%; }
+#choices button { width:min(680px,92%); padding:18px 22px; font-size: clamp(15px,2.3vw,22px);
+  border:0; border-radius:14px; background:#eef0f8; color:#2f3447; cursor:pointer; text-align:left; }
+#choices button:hover { background:#dfe3f6; }
+#toast { position:absolute; top:14px; left:50%; transform:translateX(-50%); display:flex;
+  flex-direction:column; gap:8px; pointer-events:none; z-index:90; }
+.toast-item { background:#1f2333ee; color:#cfd4e6; padding:12px 18px; border-radius:12px;
+  font-size:15px; box-shadow:0 6px 24px #0007; }
+.toast-doyun { border-left:4px solid #2fb574; }
