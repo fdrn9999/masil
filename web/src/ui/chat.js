@@ -12,7 +12,9 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
     const el = document.createElement('div'); el.className = 'avatar';
     const file = avatar || AVATAR_FILES[name];
     if (file) { const img = new Image(); img.onerror = () => initial(); img.src = file;
-      el.style.backgroundImage = `url("${file}")`; }
+      if (/^[\w./-]+$/.test(file)) {          // relative asset path only — no quotes/parens/newlines/scheme
+        el.style.setProperty('background-image', 'url(' + JSON.stringify(file) + ')');
+      } }
     else initial();
     function initial() { el.style.backgroundImage = 'none'; el.style.background = CHAT_AVATARS[name] || MASIL.avatar_bg; el.textContent = (name || '?')[0]; }
     return el;
