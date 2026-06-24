@@ -1,0 +1,16 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- 둥근 사각 배경 -->
+  <rect x="0" y="0" width="256" height="256" rx="56" fill="#6171ec"/>
+  <!-- 2호선 순환 루프 (두껍게 -> 작은 크기에서도 보임) -->
+  <circle cx="128" cy="148" r="56" fill="none" stroke="#ffffff" stroke-width="17"/>
+  <!-- 역 점 2개 -->
+  <circle cx="72" cy="148" r="9" fill="#ffffff"/>
+  <circle cx="184" cy="148" r="9" fill="#ffffff"/>
+  <!-- 상단 = 하트(로맨스) -->
+  <path d="M128 92
+           c -8 -13 -29 -9 -29 9
+           c 0 14 17 24 29 34
+           c 12 -10 29 -20 29 -34
+           c 0 -18 -21 -22 -29 -9 Z"
+        fill="#2fb574" stroke="#6171ec" stroke-width="6"/>
+</svg>
