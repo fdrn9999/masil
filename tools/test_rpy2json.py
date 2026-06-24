@@ -93,5 +93,40 @@ class TestDollar(unittest.TestCase):
         self.assertEqual(out["nodes"][1], {"op": "set", "expr": 'P.play_count = (P.play_count || 0) + 1'})
 
 
+class TestSpecialCalls(unittest.TestCase):
+    def test_consult_doyun_maps_to_consult_op(self):
+        # call consult_doyun("seoa") → 엔진 내장 consult op (dead generic call 아님)
+        out = convert('label x:\n    call consult_doyun("seoa")\n')
+        self.assertEqual(out["nodes"][1], {"op": "consult", "who": "seoa"})
+
+    def test_consult_doyun_default_who(self):
+        # 인자 없는 호출은 who 기본 "seoa"
+        out = convert('label x:\n    call consult_doyun()\n')
+        self.assertEqual(out["nodes"][1], {"op": "consult", "who": "seoa"})
+
+    def test_reply_prompt_dropped(self):
+        # call reply_prompt(...) → 다음 마일스톤으로 보류, dead {op:call} 미발생
+        out = convert('label x:\n    call reply_prompt("seoa")\n    "다음"\n')
+        ops = [n.get("op") for n in out["nodes"]]
+        self.assertNotIn("call", ops)
+        self.assertEqual(out["nodes"][1], {"op": "say", "who": "n", "text": "다음"})
+
+
+class TestGaugeMirrorSkip(unittest.TestCase):
+    # CLAUDE.md #1: 게이지 숫자 미러 표시/셋업은 변환 단계에서 결정론적으로 드롭
+    def test_gauge_mirror_display_say_dropped(self):
+        out = convert('label x:\n    n "(서아 — 호감 [seoa_like] / 진심 [seoa_sinc])"\n    "그 다음"\n')
+        texts = [n.get("text") for n in out["nodes"] if n.get("op") == "say"]
+        self.assertNotIn("(서아 — 호감 [seoa_like] / 진심 [seoa_sinc])", texts)
+        self.assertIn("그 다음", texts)
+
+    def test_gauge_mirror_setup_dollar_dropped(self):
+        out = convert('label x:\n    $ seoa_like = like["seoa"]\n    $ seoa_sinc = sincere["seoa"]\n    "끝"\n')
+        ops = [n.get("op") for n in out["nodes"]]
+        # set 노드(미러 셋업) 없음 — say(label/끝)만 남아야
+        self.assertNotIn("set", ops)
+        self.assertEqual(out["nodes"][1], {"op": "say", "who": "n", "text": "끝"})
+
+
 if __name__ == '__main__':
     unittest.main()

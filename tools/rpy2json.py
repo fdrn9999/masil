@@ -60,6 +60,10 @@ _SAY_NARR_RE = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*$')
 # scene: 'with' 절은 단순 식별자 또는 Dissolve(...)/Pause(...) 등 복합 형태 모두 허용
 _SCENE_RE = re.compile(r'^scene\s+(?:bg\s+)?(\w+)(?:\s+with\s+(.+?))?\s*$')
 _CALL_SCREEN_RE = re.compile(r'^call\s+screen\s+(\w+)')
+# call consult_doyun("seoa") / call consult_doyun()  → consult op (who 기본 "seoa")
+_CONSULT_RE = re.compile(r'^call\s+consult_doyun\s*\(\s*(?:"((?:[^"\\]|\\.)*)")?\s*\)\s*$')
+# call reply_prompt(...) → 다음 마일스톤으로 보류 (drop)
+_REPLY_PROMPT_RE = re.compile(r'^call\s+reply_prompt\s*\(')
 _CALL_RE = re.compile(r'^call\s+(\w+)\s*(?:\((.*)\))?\s*$')
 _JUMP_RE = re.compile(r'^jump\s+(\w+)\s*$')
 _MENU_CHOICE_RE = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*(?:if\s+(.+?))?\s*:\s*$')
@@ -75,10 +79,9 @@ SYS_NAMES = {'add_like','add_sincere','add_bond','hname','chapter_start','get_it
     'decide_ending','final_ending','apply_timing'}
 
 # ep1에 등장하는 default/런타임 변수 (기본 var_names). convert()에서 declarations로 보강.
-# seoa_like/seoa_sinc: ep1_wrap에서 임시 표시 변수로 사용 (V. prefix 필요)
+# (seoa_like/seoa_sinc 는 게이지 숫자 미러 표시용 → CLAUDE.md #1 따라 변환 단계에서 드롭됨)
 BASE_VARS = {'like','sincere','doyun_bond','inventory','item_flags','doyun_used_chapter','show_gauges',
-    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice',
-    'seoa_like','seoa_sinc'}
+    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice'}
 
 def py_to_js(expr):
     e = re.sub(r'\bnot\s+', '! ', expr)
@@ -187,9 +190,30 @@ def _translate_conds(nodes, var_names, sys_names):
                     _translate_conds(ch["body"], var_names, sys_names)
 
 
+# CLAUDE.md #1: gauge numbers must never be shown — strip gauge-mirror display (user-approved)
+# 게이지 숫자를 미러링해 플레이어에게 보여주는 표시 줄/셋업을 결정론적으로 드롭한다.
+# 소스(script_ep1.rpy)는 건드리지 않고 생성물(web data)에서만 숨긴다 → 재생성해도 항상 숨겨짐.
+GAUGE_MIRROR_VARS = ('seoa_like', 'seoa_sinc')
+
+def _is_gauge_mirror_line(c):
+    """게이지 숫자 미러 표시/셋업 줄이면 True (드롭 대상)."""
+    # 1) 표시용 say 줄: 텍스트에 [seoa_like]/[seoa_sinc] 보간이 들어간 줄
+    if c.startswith('"') or _SAY_CHAR_RE.match(c):
+        if any(('[' + v + ']') in c for v in GAUGE_MIRROR_VARS):
+            return True
+    # 2) 셋업 $ 줄: seoa_like / seoa_sinc 에 대입하는 줄
+    if c.startswith('$ '):
+        for v in GAUGE_MIRROR_VARS:
+            if re.match(r'^\$\s*' + re.escape(v) + r'\s*=', c):
+                return True
+    return False
+
 def classify(c, review, var_names=None, sys_names=None):
     if var_names is None: var_names = BASE_VARS
     if sys_names is None: sys_names = SYS_NAMES
+    # CLAUDE.md #1: 게이지 숫자 미러 표시/셋업 줄은 결정론적으로 드롭
+    if _is_gauge_mirror_line(c):
+        return None
     # 선언부(image/define/default)는 parse_declarations에서 처리 → 무시
     if c.startswith('image ') or c.startswith('define ') or c.startswith('default '):
         return None
@@ -209,6 +233,13 @@ def classify(c, review, var_names=None, sys_names=None):
     if m: return {"op": "jump", "label": m.group(1)}
     m = _CALL_SCREEN_RE.match(c)
     if m: return {"op": "call_screen", "name": m.group(1)}
+    # 도윤 상담: call consult_doyun("who") → 엔진 내장 consult op (필수 기능)
+    m = _CONSULT_RE.match(c)
+    if m: return {"op": "consult", "who": m.group(1) or "seoa"}
+    # 답장 타이밍: reply_prompt 는 systems_reply.rpy(파라미터 라벨, 이 슬라이스 밖) →
+    # reply timing (reply_prompt) deferred to next milestone — see web/README
+    if _REPLY_PROMPT_RE.match(c):
+        return None
     m = _CALL_RE.match(c)
     if m:
         node = {"op": "call", "label": m.group(1)}

@@ -620,10 +620,6 @@
    "text": "답장 알림이 떠 있다. 첫 답을 얼마나 빨리 하느냐부터가, 첫인상이다."
   },
   {
-   "op": "call",
-   "label": "reply_prompt"
-  },
-  {
    "op": "menu",
    "choices": [
     {
@@ -756,8 +752,8 @@
      "text": "도윤한테 상담받기",
      "body": [
       {
-       "op": "call",
-       "label": "consult_doyun"
+       "op": "consult",
+       "who": "seoa"
       }
      ]
     },
@@ -1685,14 +1681,6 @@
    "channel": "music"
   },
   {
-   "op": "set",
-   "expr": "V.seoa_like = V.like[\"seoa\"]"
-  },
-  {
-   "op": "set",
-   "expr": "V.seoa_sinc = V.sincere[\"seoa\"]"
-  },
-  {
    "op": "say",
    "who": "n",
    "text": "방에 돌아와 불을 켰다. 반쯤만 밝은 그 방이, 오늘은 조금 덜 시린 것 같았다."
@@ -1723,11 +1711,6 @@
   {
    "op": "say",
    "who": "n",
-   "text": "(서아 — 호감 [seoa_like] / 진심 [seoa_sinc])"
-  },
-  {
-   "op": "say",
-   "who": "n",
    "text": "Ep.1 끝. 2호선은 아직, 다음 역을 향해 돈다."
   },
   {
@@ -1741,14 +1724,14 @@
  ],
  "labels": {
   "episode1_full": 0,
-  "ep1_date": 180,
-  "ep1_loc_han": 207,
-  "ep1_loc_karaoke": 215,
-  "ep1_loc_cafe": 224,
-  "ep1_confess": 232,
-  "ep1_end_fast": 241,
-  "ep1_end_slow": 248,
-  "ep1_wrap": 259
+  "ep1_date": 179,
+  "ep1_loc_han": 206,
+  "ep1_loc_karaoke": 214,
+  "ep1_loc_cafe": 223,
+  "ep1_confess": 231,
+  "ep1_end_fast": 240,
+  "ep1_end_slow": 247,
+  "ep1_wrap": 258
  },
  "review": [],
  "backgrounds": {

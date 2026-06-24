@@ -12,7 +12,6 @@ const DEFAULTS = {
   like: { seoa: 0, jiu: 0, mingyeol: 0 }, sincere: { seoa: 0, jiu: 0, mingyeol: 0 },
   doyun_bond: 0, inventory: {}, item_flags: {}, doyun_used_chapter: false, show_gauges: false,
   mc_name: '진호', seoa_result: '', date_loc: '', seoa_card_given: false, promise_spring: false, ep4_choice: '',
-  seoa_like: 0, seoa_sinc: 0,
 };
 
 function autoView(pickFn) {
@@ -53,6 +52,7 @@ test('sakura_card branch: choosing to make postcard then give it sets seoa_card_
   // 0: 서아 텐션 응답, 1: 도윤 상담, 2: 벚꽃 엽서 만들기(pick 0=엽서제작),
   // 3: 첫인사, 4: 진심 한스푼, 5: 장소(pick 0=한강),
   // 6: 벚꽃 엽서 건넴(has_item 분기, pick 0=건넴), 7: 결말
-  const { state } = await play((i) => (i === 2 || i === 7) ? 0 : 0);
-  assert.equal(typeof state.vars.seoa_card_given, 'boolean');
+  // 항상 첫 선택지(0) → 메뉴2에서 엽서 제작, 메뉴6에서 엽서 건넴 → seoa_card_given=true
+  const { state } = await play(() => 0);
+  assert.equal(state.vars.seoa_card_given, true);
 });
