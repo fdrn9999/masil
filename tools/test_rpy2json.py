@@ -87,6 +87,11 @@ class TestDollar(unittest.TestCase):
         out = convert('label x:\n    if has_item("sakura_card"):\n        "있다"\n')
         self.assertEqual(out["nodes"][1]["cond"], 'S.has_item("sakura_card")')
 
+    def test_persistent_rhs_scope_prefixed(self):
+        out = convert('label x:\n    $ persistent.play_count = (persistent.play_count or 0) + 1\n')
+        # P. members stay bare (no V./S. injected); other vars get V.
+        self.assertEqual(out["nodes"][1], {"op": "set", "expr": 'P.play_count = (P.play_count || 0) + 1'})
+
 
 if __name__ == '__main__':
     unittest.main()

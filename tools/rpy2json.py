@@ -81,7 +81,9 @@ def py_to_js(expr):
     e = re.sub(r'\bnot\s+', '! ', expr)
     e = re.sub(r'\band\b', '&&', e)
     e = re.sub(r'\bor\b', '||', e)
-    e = e.replace('True', 'true').replace('False', 'false').replace('None', 'null')
+    e = re.sub(r'\bTrue\b', 'true', e)
+    e = re.sub(r'\bFalse\b', 'false', e)
+    e = re.sub(r'\bNone\b', 'null', e)
     return e
 
 def scope_prefix(expr, var_names, sys_names):
@@ -144,12 +146,13 @@ def _convert_dollar(code, review, var_names=None, sys_names=None):
     if code.startswith('renpy.call_screen'): review.append('$ ' + code); return None
     if code.startswith('persistent.'):
         # persistent.play_count = ... → set with P.
-        return {"op": "set", "expr": _persistent_expr(code)}
+        return {"op": "set", "expr": _persistent_expr(code, var_names, sys_names)}
     # 일반 헬퍼 호출/대입 → set
     return {"op": "set", "expr": scope_prefix(py_to_js(code), var_names, sys_names)}
 
-def _persistent_expr(code):
-    return py_to_js(code).replace('persistent.', 'P.')
+def _persistent_expr(code, var_names=BASE_VARS, sys_names=SYS_NAMES):
+    js = py_to_js(code).replace('persistent.', 'P.')
+    return scope_prefix(js, var_names, sys_names)
 
 
 def _apply_cond(cond, var_names, sys_names):
