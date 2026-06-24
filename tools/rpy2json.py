@@ -57,7 +57,8 @@ def parse_declarations(lines):
 
 _SAY_CHAR_RE = re.compile(r'^(\w+)\s+"((?:[^"\\]|\\.)*)"\s*$')
 _SAY_NARR_RE = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*$')
-_SCENE_RE = re.compile(r'^scene\s+(?:bg\s+)?(\w+)(?:\s+with\s+(\w+))?\s*$')
+# scene: 'with' 절은 단순 식별자 또는 Dissolve(...)/Pause(...) 등 복합 형태 모두 허용
+_SCENE_RE = re.compile(r'^scene\s+(?:bg\s+)?(\w+)(?:\s+with\s+(.+?))?\s*$')
 _CALL_SCREEN_RE = re.compile(r'^call\s+screen\s+(\w+)')
 _CALL_RE = re.compile(r'^call\s+(\w+)\s*(?:\((.*)\))?\s*$')
 _JUMP_RE = re.compile(r'^jump\s+(\w+)\s*$')
@@ -74,8 +75,10 @@ SYS_NAMES = {'add_like','add_sincere','add_bond','hname','chapter_start','get_it
     'decide_ending','final_ending','apply_timing'}
 
 # ep1에 등장하는 default/런타임 변수 (기본 var_names). convert()에서 declarations로 보강.
+# seoa_like/seoa_sinc: ep1_wrap에서 임시 표시 변수로 사용 (V. prefix 필요)
 BASE_VARS = {'like','sincere','doyun_bond','inventory','item_flags','doyun_used_chapter','show_gauges',
-    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice'}
+    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice',
+    'seoa_like','seoa_sinc'}
 
 def py_to_js(expr):
     e = re.sub(r'\bnot\s+', '! ', expr)
@@ -84,6 +87,9 @@ def py_to_js(expr):
     e = re.sub(r'\bTrue\b', 'true', e)
     e = re.sub(r'\bFalse\b', 'false', e)
     e = re.sub(r'\bNone\b', 'null', e)
+    # Python  x in (a, b, c)  →  [a, b, c].includes(x)
+    # (튜플 in-check. 문자열 리터럴 안쪽에서는 작동하지 않으므로 간단 패턴만 처리)
+    e = re.sub(r'(\S+)\s+in\s+\(([^)]+)\)', r'[\2].includes(\1)', e)
     return e
 
 def scope_prefix(expr, var_names, sys_names):
@@ -156,8 +162,10 @@ def _persistent_expr(code, var_names=BASE_VARS, sys_names=SYS_NAMES):
 
 
 def _apply_cond(cond, var_names, sys_names):
-    """cond 문자열에 py_to_js + scope_prefix 적용."""
-    return scope_prefix(py_to_js(cond), var_names, sys_names)
+    """cond 문자열에 py_to_js + scope_prefix 적용. persistent.x → P.x 포함."""
+    c = py_to_js(cond)
+    c = c.replace('persistent.', 'P.')
+    return scope_prefix(c, var_names, sys_names)
 
 def _translate_conds(nodes, var_names, sys_names):
     """노드 트리를 순회하며 if/menu의 cond를 변환."""
@@ -182,6 +190,15 @@ def _translate_conds(nodes, var_names, sys_names):
 def classify(c, review, var_names=None, sys_names=None):
     if var_names is None: var_names = BASE_VARS
     if sys_names is None: sys_names = SYS_NAMES
+    # 선언부(image/define/default)는 parse_declarations에서 처리 → 무시
+    if c.startswith('image ') or c.startswith('define ') or c.startswith('default '):
+        return None
+    # 독립 'with 전환' 구문은 연출 전용 → 무시
+    if c.startswith('with '):
+        return None
+    # 'centered "..."' 구문은 간판 나레이션으로 처리
+    m = re.match(r'^centered\s+"((?:[^"\\]|\\.)*)"', c)
+    if m: return {"op": "say", "who": "n", "text": _unquote(m.group(1))}
     m = _SCENE_RE.match(c)
     if m:
         node = {"op": "scene", "bg": m.group(1)}
@@ -201,7 +218,14 @@ def classify(c, review, var_names=None, sys_names=None):
         return None  # 비-채팅 화면 연출은 무시
     if c.startswith('pause'): return {"op": "pause"}
     if c.startswith('$ '):
-        return _convert_dollar(c[2:].strip(), review, var_names, sys_names)
+        # 인라인 주석 제거 (문자열 리터럴 밖의 # 이후 제거)
+        code_raw = c[2:].strip()
+        parts = re.split(r'("(?:[^"\\]|\\.)*")', code_raw)
+        code_stripped = ''.join(
+            re.sub(r'\s*#.*$', '', p) if k % 2 == 0 else p
+            for k, p in enumerate(parts)
+        ).strip()
+        return _convert_dollar(code_stripped, review, var_names, sys_names)
     m = _SAY_CHAR_RE.match(c)
     if m: return {"op": "say", "who": m.group(1), "text": _unquote(m.group(2))}
     m = _SAY_NARR_RE.match(c)
@@ -304,3 +328,21 @@ def convert(text, var_names=None, sys_names=None):
         if n.get("op") == "label":
             labels[n["name"]] = idx
     return {"nodes": nodes, "labels": labels, "review": review}
+
+
+def main():
+    import sys, json, io
+    src, out = sys.argv[1], sys.argv[sys.argv.index('-o') + 1]
+    text = io.open(src, encoding='utf-8').read()
+    decls = parse_declarations(parse_lines(text))
+    var_names = set(BASE_VARS) | set(decls["defaults"].keys())
+    result = convert(text, var_names=var_names, sys_names=SYS_NAMES)
+    result["backgrounds"] = decls["backgrounds"]
+    result["defaults"] = decls["defaults"]
+    io.open(out, 'w', encoding='utf-8').write(json.dumps(result, ensure_ascii=False, indent=1))
+    with io.open('convert_review.log', 'w', encoding='utf-8') as f:
+        f.write('\n'.join(result["review"]))
+    print('nodes:', len(result["nodes"]), 'labels:', len(result["labels"]), 'review:', len(result["review"]))
+
+if __name__ == '__main__':
+    main()
