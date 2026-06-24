@@ -14,7 +14,7 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
     if (file) { const img = new Image(); img.onerror = () => initial(); img.src = file;
       el.style.backgroundImage = `url("${file}")`; }
     else initial();
-    function initial() { el.style.background = CHAT_AVATARS[name] || MASIL.avatar_bg; el.textContent = (name || '?')[0]; }
+    function initial() { el.style.backgroundImage = 'none'; el.style.background = CHAT_AVATARS[name] || MASIL.avatar_bg; el.textContent = (name || '?')[0]; }
     return el;
   }
   function scrollBottom() { log.scrollTop = log.scrollHeight; }
@@ -23,7 +23,7 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
     open({ room }) {
       wrap.classList.remove('hidden'); minutes = 0;
       wrap.innerHTML = `<div class="topbar"><span style="font-size:28px">‹</span>
-        <div><div class="room">${room}</div><div class="sub"><span class="dot"></span>온라인</div></div></div>
+        <div><div class="room">${escapeHtml(room)}</div><div class="sub"><span class="dot"></span>온라인</div></div></div>
         <div class="log"></div>`;
       log = wrap.querySelector('.log');
     },
@@ -33,11 +33,11 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
         const row = document.createElement('div'); row.className = 'bubble-row left';
         row.appendChild(avatarEl(name, avatar));
         const col = document.createElement('div');
-        col.innerHTML = `<div class="sender">${name || ''}</div>
+        col.innerHTML = `<div class="sender">${escapeHtml(name || '')}</div>
           <div class="bubble typing"><span></span><span></span><span></span></div>`;
         row.appendChild(col); log.appendChild(row); scrollBottom();
         setTimeout(() => {
-          col.innerHTML = `<div class="sender">${name || ''}</div>
+          col.innerHTML = `<div class="sender">${escapeHtml(name || '')}</div>
             <div class="bubble">${escapeHtml(text)}</div><div class="meta">${fmtTime()}</div>`;
           scrollBottom(); resolve();
         }, 800);
@@ -52,4 +52,4 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
     },
   };
 }
-function escapeHtml(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+function escapeHtml(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
