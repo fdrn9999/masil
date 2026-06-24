@@ -25,8 +25,8 @@ export class GameState {
   _load(key) {
     const raw = this.storage.getItem(key);
     if (!raw) return null;
-    const data = JSON.parse(raw);
-    this.vars = data.vars;
+    const data = JSON.parse(raw);       // may throw — vars untouched until parse succeeds
+    this.vars = data.vars ?? {};
     return { label: data.label, ip: data.ip, callStack: data.callStack };
   }
 
@@ -39,5 +39,5 @@ export class GameState {
 
 function memoryStorage() {
   const m = new Map();
-  return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+  return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, v) };
 }

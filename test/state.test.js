@@ -28,6 +28,13 @@ test('save and load slot round-trips vars + engine position', () => {
   assert.deepEqual(pos, { label: 'ep1_date', ip: 7, callStack: [] });
 });
 
+test('loadSlot throws on corrupt JSON', () => {
+  const st = memStorage();
+  st.setItem('masil.save.1', '{bad json');
+  const s = new GameState(st);
+  assert.throws(() => s.loadSlot(1));
+});
+
 test('persistent persists across instances', () => {
   const st = memStorage();
   const a = new GameState(st);
