@@ -1,5 +1,5 @@
 import unittest
-from rpy2json import parse_lines, parse_declarations, convert
+from rpy2json import parse_lines, parse_declarations, convert, py_to_js
 
 class TestDecls(unittest.TestCase):
     def test_parse_lines_strips_comments_blanks(self):
@@ -56,6 +56,37 @@ class TestBlocks(unittest.TestCase):
         self.assertEqual(menu["choices"][0]["text"], "A")
         self.assertEqual(menu["choices"][0]["body"][0], {"op": "say", "who": "mc", "text": "에이"})
         self.assertEqual(menu["choices"][1]["body"][0], {"op": "jump", "label": "m"})
+
+class TestDollar(unittest.TestCase):
+    def test_py_to_js_operators(self):
+        self.assertEqual(py_to_js('a and b or not c'), 'a && b || ! c')
+        self.assertEqual(py_to_js('x == True'), 'x == true')
+
+    def test_recv_send_chatreset(self):
+        out = convert('label x:\n    $ chat_reset("서아")\n    $ recv("안녕", name="서아")\n    $ send("ㅎㅇ")\n')
+        n = out["nodes"]
+        self.assertEqual(n[1], {"op": "chat_open", "room": "서아"})
+        self.assertEqual(n[2], {"op": "recv", "name": "서아", "text": "안녕"})
+        self.assertEqual(n[3], {"op": "send", "text": "ㅎㅇ"})
+
+    def test_helper_call_becomes_set_with_prefix(self):
+        out = convert('label x:\n    $ add_like("seoa", 15)\n')
+        self.assertEqual(out["nodes"][1], {"op": "set", "expr": 'S.add_like("seoa", 15)'})
+
+    def test_assignment_var_prefixed(self):
+        out = convert('label x:\n    $ promise_spring = True\n')
+        # promise_spring is a known var (passed via var_names at convert time)
+        self.assertEqual(out["nodes"][1], {"op": "set", "expr": 'V.promise_spring = true'})
+
+    def test_music_and_ping(self):
+        out = convert('label x:\n    $ pmusic("audio/bgm/a.ogg", fadein=1.0)\n    $ doyun_ping("형 잘돼?")\n')
+        self.assertEqual(out["nodes"][1], {"op": "music", "file": "audio/bgm/a.ogg", "fadein": 1.0})
+        self.assertEqual(out["nodes"][2], {"op": "toast", "kind": "doyun", "text": "형 잘돼?"})
+
+    def test_if_cond_translated(self):
+        out = convert('label x:\n    if has_item("sakura_card"):\n        "있다"\n')
+        self.assertEqual(out["nodes"][1]["cond"], 'S.has_item("sakura_card")')
+
 
 if __name__ == '__main__':
     unittest.main()

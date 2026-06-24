@@ -66,11 +66,119 @@ _MENU_CHOICE_RE = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*(?:if\s+(.+?))?\s*:\s*$')
 def _unquote(s):
     return s.replace('\\"', '"').replace("\\'", "'")
 
-def _convert_dollar(code, review):
-    review.append('$ ' + code)
-    return None
 
-def classify(c, review):
+# ── Part 3: py→js + scope prefix + $ converter ────────────────────────────────
+
+SYS_NAMES = {'add_like','add_sincere','add_bond','hname','chapter_start','get_item','has_item',
+    'item_count','use_item','give_item','was_given','unlock_station','doyun_ping','doyun_line',
+    'decide_ending','final_ending','apply_timing'}
+
+# ep1에 등장하는 default/런타임 변수 (기본 var_names). convert()에서 declarations로 보강.
+BASE_VARS = {'like','sincere','doyun_bond','inventory','item_flags','doyun_used_chapter','show_gauges',
+    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice'}
+
+def py_to_js(expr):
+    e = re.sub(r'\bnot\s+', '! ', expr)
+    e = re.sub(r'\band\b', '&&', e)
+    e = re.sub(r'\bor\b', '||', e)
+    e = e.replace('True', 'true').replace('False', 'false').replace('None', 'null')
+    return e
+
+def scope_prefix(expr, var_names, sys_names):
+    def repl(m):
+        ident = m.group(0)
+        if ident in sys_names: return 'S.' + ident
+        if ident in var_names: return 'V.' + ident
+        return ident
+    # 문자열 리터럴 보호: 짝수 인덱스는 비-리터럴, 홀수 인덱스는 문자열 리터럴
+    parts = re.split(r'("(?:[^"\\]|\\.)*")', expr)
+    for k in range(0, len(parts), 2):
+        parts[k] = re.sub(r'(?<![\.\w])[A-Za-z_]\w*', repl, parts[k])
+    return ''.join(parts)
+
+_RECV_RE = re.compile(r'^recv\("((?:[^"\\]|\\.)*)"\s*,\s*name="((?:[^"\\]|\\.)*)"')
+_SEND_RE = re.compile(r'^send\("((?:[^"\\]|\\.)*)"\)')
+_RESET_RE = re.compile(r'^chat_reset\("((?:[^"\\]|\\.)*)"\)')
+_PMUSIC_RE = re.compile(r'^pmusic\("([^"]*)"(?:\s*,\s*fadein=([\d.]+))?')
+_PSOUND_RE = re.compile(r'^psound\("([^"]*)"\)')
+_PAMB_RE = re.compile(r'^pamb\("([^"]*)"(?:\s*,\s*fadein=([\d.]+))?')
+_PING_RE = re.compile(r'^doyun_ping\("((?:[^"\\]|\\.)*)"\)')
+_INPUT_RE = re.compile(r'renpy\.input\("((?:[^"\\]|\\.)*)"(?:\s*,\s*default="([^"]*)")?(?:\s*,\s*length=(\d+))?\)')
+
+def _convert_dollar(code, review, var_names=None, sys_names=None):
+    if var_names is None: var_names = BASE_VARS
+    if sys_names is None: sys_names = SYS_NAMES
+    m = _RESET_RE.match(code)
+    if m: return {"op": "chat_open", "room": _unquote(m.group(1))}
+    m = _RECV_RE.match(code)
+    if m: return {"op": "recv", "name": _unquote(m.group(2)), "text": _unquote(m.group(1))}
+    m = _SEND_RE.match(code)
+    if m: return {"op": "send", "text": _unquote(m.group(1))}
+    m = _PMUSIC_RE.match(code)
+    if m:
+        node = {"op": "music", "file": m.group(1)}
+        if m.group(2): node["fadein"] = float(m.group(2))
+        return node
+    m = _PSOUND_RE.match(code)
+    if m: return {"op": "sound", "file": m.group(1)}
+    m = _PAMB_RE.match(code)
+    if m:
+        node = {"op": "amb", "file": m.group(1)}
+        if m.group(2): node["fadein"] = float(m.group(2))
+        return node
+    if code.startswith('pstop'): return {"op": "stop", "channel": "music"}
+    if code.startswith('pamb_stop'): return {"op": "stop", "channel": "amb"}
+    m = _PING_RE.match(code)
+    if m: return {"op": "toast", "kind": "doyun", "text": _unquote(m.group(1))}
+    # renpy.input(...) (닉네임): tmp = renpy.input(...) 형태
+    mi = _INPUT_RE.search(code)
+    if mi:
+        node = {"op": "input", "var": "mc_name", "prompt": _unquote(mi.group(1))}
+        if mi.group(2): node["default"] = mi.group(2)
+        if mi.group(3): node["max"] = int(mi.group(3))
+        return node
+    # mc_name = tmp.strip() or "진호"  → input 노드가 이미 처리하므로 무시
+    if re.match(r'^mc_name\s*=\s*tmp', code): return None
+    # mc = Character(...) 재정의 → 무시 (이름은 mc_name 보간)
+    if re.match(r'^\w+\s*=\s*Character\(', code): return None
+    if code.startswith('renpy.call_screen'): review.append('$ ' + code); return None
+    if code.startswith('persistent.'):
+        # persistent.play_count = ... → set with P.
+        return {"op": "set", "expr": _persistent_expr(code)}
+    # 일반 헬퍼 호출/대입 → set
+    return {"op": "set", "expr": scope_prefix(py_to_js(code), var_names, sys_names)}
+
+def _persistent_expr(code):
+    return py_to_js(code).replace('persistent.', 'P.')
+
+
+def _apply_cond(cond, var_names, sys_names):
+    """cond 문자열에 py_to_js + scope_prefix 적용."""
+    return scope_prefix(py_to_js(cond), var_names, sys_names)
+
+def _translate_conds(nodes, var_names, sys_names):
+    """노드 트리를 순회하며 if/menu의 cond를 변환."""
+    for node in nodes:
+        if node is None:
+            continue
+        if node.get("op") == "if":
+            if "cond" in node:
+                node["cond"] = _apply_cond(node["cond"], var_names, sys_names)
+            if "then" in node:
+                _translate_conds(node["then"], var_names, sys_names)
+            if "else" in node:
+                _translate_conds(node["else"], var_names, sys_names)
+        elif node.get("op") == "menu":
+            for ch in node.get("choices", []):
+                if "cond" in ch:
+                    ch["cond"] = _apply_cond(ch["cond"], var_names, sys_names)
+                if "body" in ch:
+                    _translate_conds(ch["body"], var_names, sys_names)
+
+
+def classify(c, review, var_names=None, sys_names=None):
+    if var_names is None: var_names = BASE_VARS
+    if sys_names is None: sys_names = SYS_NAMES
     m = _SCENE_RE.match(c)
     if m:
         node = {"op": "scene", "bg": m.group(1)}
@@ -90,7 +198,7 @@ def classify(c, review):
         return None  # 비-채팅 화면 연출은 무시
     if c.startswith('pause'): return {"op": "pause"}
     if c.startswith('$ '):
-        return _convert_dollar(c[2:].strip(), review)   # Task 7
+        return _convert_dollar(c[2:].strip(), review, var_names, sys_names)
     m = _SAY_CHAR_RE.match(c)
     if m: return {"op": "say", "who": m.group(1), "text": _unquote(m.group(2))}
     m = _SAY_NARR_RE.match(c)
@@ -98,28 +206,28 @@ def classify(c, review):
     review.append(c)
     return None
 
-def parse_block(lines, i, base_indent, review):
+def parse_block(lines, i, base_indent, review, var_names=None, sys_names=None):
     """base_indent보다 더 깊은 연속 줄들을 노드 리스트로 (중첩 body 용)."""
     block = []
     while i < len(lines) and lines[i].indent > base_indent:
-        node, i = _line_to_node(lines, i, review)
+        node, i = _line_to_node(lines, i, review, var_names, sys_names)
         if node is not None:
             block.append(node)
     return block, i
 
-def _line_to_node(lines, i, review):
+def _line_to_node(lines, i, review, var_names=None, sys_names=None):
     l = lines[i]
     c = l.content
     if c.startswith('label ') and c.endswith(':'):
         return {"op": "label", "name": c[6:-1].strip()}, i + 1
     if c == 'menu:':
-        return _parse_menu(lines, i, review)
+        return _parse_menu(lines, i, review, var_names, sys_names)
     if c.startswith('if ') and c.endswith(':'):
-        return _parse_if(lines, i, review)
-    node = classify(c, review)
+        return _parse_if(lines, i, review, var_names, sys_names)
+    node = classify(c, review, var_names, sys_names)
     return node, i + 1
 
-def _parse_menu(lines, i, review):
+def _parse_menu(lines, i, review, var_names=None, sys_names=None):
     base = lines[i].indent
     i += 1
     prompt, choices = None, []
@@ -128,12 +236,12 @@ def _parse_menu(lines, i, review):
         mc = _MENU_CHOICE_RE.match(c)
         if mc:
             text, cond = mc.group(1), mc.group(2)
-            body, i = parse_block(lines, i + 1, lines[i].indent, review)
+            body, i = parse_block(lines, i + 1, lines[i].indent, review, var_names, sys_names)
             ch = {"text": _unquote(text), "body": body}
-            if cond: ch["cond"] = cond  # Task 7에서 py→js 변환
+            if cond: ch["cond"] = cond  # cond는 convert()에서 일괄 변환
             choices.append(ch)
         else:
-            node = classify(c, review)
+            node = classify(c, review, var_names, sys_names)
             if node and node.get("op") == "say" and prompt is None:
                 prompt = node["text"]
             i += 1
@@ -141,44 +249,53 @@ def _parse_menu(lines, i, review):
     if prompt is not None: out["prompt"] = prompt
     return out, i
 
-def _parse_if(lines, i, review):
+def _parse_if(lines, i, review, var_names=None, sys_names=None):
     base = lines[i].indent
     cond = lines[i].content[3:-1].strip()
-    then, i = parse_block(lines, i + 1, base, review)
+    then, i = parse_block(lines, i + 1, base, review, var_names, sys_names)
     node = {"op": "if", "cond": cond, "then": then}
     if i < len(lines) and lines[i].indent == base and lines[i].content.startswith('elif '):
-        sub, i = _parse_if_from_elif(lines, i, review)
+        sub, i = _parse_if_from_elif(lines, i, review, var_names, sys_names)
         node["else"] = [sub]
     elif i < len(lines) and lines[i].indent == base and lines[i].content.rstrip() == 'else:':
-        els, i = parse_block(lines, i + 1, base, review)
+        els, i = parse_block(lines, i + 1, base, review, var_names, sys_names)
         node["else"] = els
     return node, i
 
-def _parse_if_from_elif(lines, i, review):
+def _parse_if_from_elif(lines, i, review, var_names=None, sys_names=None):
     base = lines[i].indent
     cond = lines[i].content[5:-1].strip()
-    then, i = parse_block(lines, i + 1, base, review)
+    then, i = parse_block(lines, i + 1, base, review, var_names, sys_names)
     node = {"op": "if", "cond": cond, "then": then}
     if i < len(lines) and lines[i].indent == base and lines[i].content.startswith('elif '):
-        sub, i = _parse_if_from_elif(lines, i, review)
+        sub, i = _parse_if_from_elif(lines, i, review, var_names, sys_names)
         node["else"] = [sub]
     elif i < len(lines) and lines[i].indent == base and lines[i].content.rstrip() == 'else:':
-        els, i = parse_block(lines, i + 1, base, review)
+        els, i = parse_block(lines, i + 1, base, review, var_names, sys_names)
         node["else"] = els
     return node, i
 
-def _consume(lines, i, nodes, review):
-    node, ni = _line_to_node(lines, i, review)
+def _consume(lines, i, nodes, review, var_names=None, sys_names=None):
+    node, ni = _line_to_node(lines, i, review, var_names, sys_names)
     if node is not None:
         nodes.append(node)
     return node, ni
 
-def convert(text):
+def convert(text, var_names=None, sys_names=None):
     lines = parse_lines(text)
+    # declarations로부터 default 변수명을 BASE_VARS에 합집합
+    decls = parse_declarations(lines)
+    effective_var_names = BASE_VARS | set(decls["defaults"].keys())
+    if var_names is not None:
+        effective_var_names = effective_var_names | set(var_names)
+    effective_sys_names = SYS_NAMES if sys_names is None else SYS_NAMES | set(sys_names)
+
     nodes, review = [], []
     i = 0
     while i < len(lines):
-        node, i = _consume(lines, i, nodes, review)
+        node, i = _consume(lines, i, nodes, review, effective_var_names, effective_sys_names)
+    # if/menu cond를 일괄 py→js + scope_prefix 변환
+    _translate_conds(nodes, effective_var_names, effective_sys_names)
     labels = {}
     for idx, n in enumerate(nodes):
         if n.get("op") == "label":
