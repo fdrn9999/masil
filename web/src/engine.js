@@ -13,13 +13,14 @@ export class Engine {
 
   interp(text) {
     if (text == null) return text;
+    const ESC = String.fromCharCode(0);       // NUL sentinel — cannot appear in script text
     return String(text)
-      .replace(/\[\[/g, ' ESC ')
+      .replaceAll('[[', ESC)
       .replace(/\[([A-Za-z_]\w*)\]/g, (_, name) => {
         const v = this.state.vars[name];
         return v == null ? '' : String(v);
       })
-      .replace(/ ESC /g, '[');
+      .replaceAll(ESC, '[');
   }
 
   position() { return { label: this._label, ip: this.ip, callStack: [...this.callStack] }; }
@@ -40,7 +41,7 @@ export class Engine {
   async _execList(list) {
     // for menu choice bodies / if branches: run a sub-list with same engine semantics
     for (let i = 0; i < list.length; i++) {
-      const r = await this._exec(list[i], list, i);
+      const r = await this._exec(list[i], list);
       if (r === 'stop') return 'stop';
       if (typeof r === 'object' && r.jump != null) return r;   // propagate jump/return-to-label
       if (r === 'return') return 'return';
@@ -48,7 +49,7 @@ export class Engine {
     return null;
   }
 
-  async _exec(node, list, idx) {
+  async _exec(node, list) {
     const v = this.view;
     switch (node.op) {
       case 'label': return undefined;

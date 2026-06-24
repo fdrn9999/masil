@@ -51,3 +51,8 @@ test('menu choice A jumps to branch_a and never reaches unreachable say', async 
   const says = view.log.filter(e => e[0] === 'say').map(e => e[1]);
   assert.deepEqual(says, ['안녕 진호.', 'A 분기']);
 });
+
+test('interp: [[ yields literal [ without interpolating the bracketed word, plus real var', () => {
+  const engine = makeEngine(recordingView(0));
+  assert.equal(engine.interp('값은 [[ESC] 그리고 [mc_name]'), '값은 [ESC] 그리고 진호');
+});
