@@ -24,7 +24,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_lonely.ogg"
+   "file": "audio/bgm/bgm_lonely.mp3"
   },
   {
    "op": "say",
@@ -139,7 +139,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_daily.ogg"
+   "file": "audio/bgm/bgm_daily.mp3"
   },
   {
    "op": "say",
@@ -283,7 +283,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_emotional.ogg",
+   "file": "audio/bgm/bgm_emotional.mp3",
    "fadein": 0.6
   },
   {
@@ -424,7 +424,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 1.0
   },
   {
@@ -545,7 +545,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_daily.ogg"
+   "file": "audio/bgm/bgm_daily.mp3"
   },
   {
    "op": "say",
@@ -1011,7 +1011,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_seoa.ogg",
+   "file": "audio/bgm/bgm_seoa.mp3",
    "fadein": 1.0
   },
   {
@@ -1277,7 +1277,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 1.2
   },
   {
@@ -1309,7 +1309,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_comedy.ogg",
+   "file": "audio/bgm/bgm_comedy.mp3",
    "fadein": 0.6
   },
   {
@@ -1351,7 +1351,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_daily.ogg",
+   "file": "audio/bgm/bgm_daily.mp3",
    "fadein": 0.8
   },
   {
@@ -1548,7 +1548,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_seoa.ogg",
+   "file": "audio/bgm/bgm_seoa.mp3",
    "fadein": 1.0
   },
   {
@@ -1794,7 +1794,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_daily.ogg"
+   "file": "audio/bgm/bgm_daily.mp3"
   },
   {
    "op": "say",
@@ -2050,7 +2050,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_night_talk.ogg",
+   "file": "audio/bgm/bgm_night_talk.mp3",
    "fadein": 1.2
   },
   {
@@ -2120,7 +2120,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_comedy.ogg",
+   "file": "audio/bgm/bgm_comedy.mp3",
    "fadein": 0.8
   },
   {
@@ -2164,7 +2164,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_night_talk.ogg",
+   "file": "audio/bgm/bgm_night_talk.mp3",
    "fadein": 1.2
   },
   {
@@ -2468,7 +2468,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_emotional.ogg",
+   "file": "audio/bgm/bgm_emotional.mp3",
    "fadein": 1.2
   },
   {
@@ -2553,7 +2553,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 1.5
   },
   {
@@ -2648,7 +2648,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_daily.ogg"
+   "file": "audio/bgm/bgm_daily.mp3"
   },
   {
    "op": "say",
@@ -2983,7 +2983,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 1.0
   },
   {
@@ -3155,7 +3155,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_daily.ogg",
+   "file": "audio/bgm/bgm_daily.mp3",
    "fadein": 0.8
   },
   {
@@ -3205,7 +3205,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 1.0
   },
   {
@@ -3246,7 +3246,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 1.2
   },
   {
@@ -3384,7 +3384,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_emotional.ogg",
+   "file": "audio/bgm/bgm_emotional.mp3",
    "fadein": 1.2
   },
   {
@@ -3575,7 +3575,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_daily.ogg"
+   "file": "audio/bgm/bgm_daily.mp3"
   },
   {
    "op": "say",
@@ -3802,7 +3802,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_tension.ogg",
+   "file": "audio/bgm/bgm_tension.mp3",
    "fadein": 0.6
   },
   {
@@ -3914,7 +3914,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_night_talk.ogg",
+   "file": "audio/bgm/bgm_night_talk.mp3",
    "fadein": 1.0
   },
   {
@@ -4017,7 +4017,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 1.0
   },
   {
@@ -4177,7 +4177,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_emotional.ogg",
+   "file": "audio/bgm/bgm_emotional.mp3",
    "fadein": 1.2
   },
   {
@@ -4275,7 +4275,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_emotional.ogg",
+   "file": "audio/bgm/bgm_emotional.mp3",
    "fadein": 1.2
   },
   {
@@ -4651,7 +4651,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 2.0
   },
   {
@@ -4689,7 +4689,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_emotional.ogg",
+   "file": "audio/bgm/bgm_emotional.mp3",
    "fadein": 1.5
   },
   {
@@ -5039,7 +5039,7 @@
   },
   {
    "op": "music",
-   "file": "audio/bgm/bgm_warm.ogg",
+   "file": "audio/bgm/bgm_warm.mp3",
    "fadein": 2.0
   },
   {

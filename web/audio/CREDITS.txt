@@ -18,7 +18,9 @@
 [앰비언스]
     amb_street.wav  — 자체 합성(원본, CC0). Kenney UI 팩엔 거리 앰비언스가 없어 직접 생성.
 
-[BGM] — 메인 테마/배경음악은 제작자가 직접 제작 예정(audio/bgm/).
+[BGM] — 메인 테마/배경음악: 제작자 직접 제작 (audio/bgm/, 8곡, MP3)
+    bgm_lonely · bgm_daily · bgm_night_talk · bgm_emotional · bgm_warm · bgm_seoa · bgm_comedy · bgm_tension
+    story.json의 music 큐가 장면별로 호출. 교체 시 같은 파일명으로 덮어쓰면 됨.
 
 ※ 실제 메신저(카카오톡 등)의 알림음과 닮지 않은 자체/CC0 사운드만 사용 (상표 안전).
 ※ SE는 짧은 WAV. 다른 소리로 바꾸려면 같은 파일명으로 web/audio/se/ 에 덮어쓰면 됩니다(safe-play).
