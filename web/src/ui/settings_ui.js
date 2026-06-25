@@ -111,11 +111,8 @@ export function makeSettingsUI(root, { settings, audio }) {
         audio.refreshVolumes();
         if (sfxVal) sfxVal.textContent = sfxSlider.value;
       });
-      // Preview click SE on release (pointerup / touchend)
+      // Preview click SE on release (pointerup covers mouse/touch/pen — single fire)
       sfxSlider.addEventListener('pointerup', () => {
-        audio.playSfx('se_click');
-      });
-      sfxSlider.addEventListener('touchend', () => {
         audio.playSfx('se_click');
       });
     }
