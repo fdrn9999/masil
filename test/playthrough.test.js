@@ -6,53 +6,170 @@ import { makeSystems } from '../web/src/systems.js';
 import { makeEvaluator } from '../web/src/eval_expr.js';
 import { Engine } from '../web/src/engine.js';
 
-const script = JSON.parse(readFileSync(new URL('../web/data/ep1.json', import.meta.url)));
+// All episodes combined — ep1 → ep4 → epilogue
+const script = JSON.parse(readFileSync(new URL('../web/data/story.json', import.meta.url)));
 const characters = JSON.parse(readFileSync(new URL('../web/data/characters.json', import.meta.url)));
-const DEFAULTS = {
+
+// Structural defaults not present in script.defaults
+const SUPPLEMENT_DEFAULTS = {
   like: { seoa: 0, jiu: 0, mingyeol: 0 }, sincere: { seoa: 0, jiu: 0, mingyeol: 0 },
   doyun_bond: 0, inventory: {}, item_flags: {}, doyun_used_chapter: false, show_gauges: false,
-  mc_name: '진호', seoa_result: '', date_loc: '', seoa_card_given: false, promise_spring: false, ep4_choice: '',
+  mc_name: '진호', seoa_result: '', date_loc: '', seoa_card_given: false, promise_spring: false,
+  ep4_choice: '', doyun_secret_seen: false, meet_loc: '', date3_loc: '',
+  mingyeol_truth_known: false, heard_side: '',
+};
+
+// 4-way ending menu identified by its exact prompt text.
+// Using text-matching is robust against branch-dependent menu count shifts.
+const EP4_ENDING_PROMPT = '── Ep.4 — 그리고 이 이야기의 답을 정하는 선택 ──';
+
+// Choice text fragments for each ending path (substrings for robustness)
+const EP4_CHOICE_TEXT = {
+  reconcile: '도윤과 함께',         // choice 0
+  love:      '민결을 선택한다',      // choice 1
+  friend:    '도윤과의 의리를 지킨다', // choice 2
+  run:       '도망친다',            // choice 3
 };
 
 function autoView(pickFn) {
   const says = [];
   let menuN = 0;
+  const callScreenCalls = [];
   return {
     says,
+    callScreenCalls,
     async scene() {}, async chatOpen() {}, async chatClose() {}, async recv() {}, async send() {},
-    async pause() {}, async consult() {}, async callScreen() {}, async toast() {},
+    async pause() {}, async consult() {}, async toast() {},
     async music() {}, async sound() {}, async amb() {}, async stop() {},
     async say(a) { says.push(a.text); },
     async input() { return '진호'; },
-    async menu(a) { return pickFn(menuN++, a.choices); },
+    async menu(a) { return pickFn(menuN++, a); },
+    async callScreen(a) { callScreenCalls.push(a.name); },
   };
 }
 
-function play(pickFn) {
+/**
+ * Run the full story (episode1_full → epilogue → result_card).
+ * @param {function} pickFn  (menuIndex, menuAction) → choiceIndex
+ * @param {object}   preVars  vars to force-set before the engine starts (for gauge seeding)
+ */
+function play(pickFn, preVars = {}) {
   const state = new GameState();
-  state.defineDefaults(DEFAULTS);
+  state.defineDefaults(script.defaults || {});
+  state.defineDefaults(SUPPLEMENT_DEFAULTS);
+  // Force-seed vars (e.g. gauges for ending tests); must come after defineDefaults
+  Object.assign(state.vars, preVars);
   const sys = makeSystems(state, {});
   const view = autoView(pickFn);
   const eng = new Engine({ script, characters, state, sys, evaluator: makeEvaluator(state, sys), view });
-  return eng.start('episode1_full').then(() => ({ state, view }));
+  return eng.start('episode1_full').then(() => ({ state, view, sys }));
 }
 
-test('plays prologue+Ep1 to an end taking first choices, no crash, no unknown var', async () => {
+/**
+ * Build a picker that matches the ep4 ending menu by prompt text and selects
+ * the choice whose text includes `targetText`. Falls back to `fallback` for all
+ * other menus.
+ */
+function makeEndingPicker(targetChoiceText, fallback = () => 0) {
+  return (_n, a) => {
+    if (a.prompt === EP4_ENDING_PROMPT) {
+      const idx = a.choices.findIndex(c => c.includes(targetChoiceText));
+      if (idx >= 0) return idx;
+    }
+    return fallback(_n, a);
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Smoke tests: full story, no crash, result_card shown
+// ────────────────────────────────────────────────────────────────────────────
+
+test('full story all-first-choices: no crash, reaches result_card', async () => {
   const { view } = await play(() => 0);
-  assert.ok(view.says.length > 50, 'should render many lines');
+  assert.ok(view.says.length > 100, `expected >100 say nodes, got ${view.says.length}`);
+  assert.ok(
+    view.callScreenCalls.includes('result_card'),
+    'expected result_card to be called'
+  );
 });
 
-test('plays taking last choices to the other end', async () => {
-  const { view } = await play((_, choices) => choices.length - 1);
-  assert.ok(view.says.length > 50);
+test('full story all-last-choices: no crash, reaches result_card', async () => {
+  const { view } = await play((_n, a) => a.choices.length - 1);
+  assert.ok(view.says.length > 100);
+  assert.ok(view.callScreenCalls.includes('result_card'));
 });
+
+// ────────────────────────────────────────────────────────────────────────────
+// Ep1 branch: sakura_card
+// ────────────────────────────────────────────────────────────────────────────
 
 test('sakura_card branch: choosing to make postcard then give it sets seoa_card_given', async () => {
-  // menu indices (always-first picker → all 0):
-  // 0: 서아 텐션 응답, 1: 도윤 상담, 2: 벚꽃 엽서 만들기(pick 0=엽서제작),
-  // 3: 첫인사, 4: 진심 한스푼, 5: 장소(pick 0=한강),
-  // 6: 벚꽃 엽서 건넴(has_item 분기, pick 0=건넴), 7: 결말
-  // 항상 첫 선택지(0) → 메뉴2에서 엽서 제작, 메뉴6에서 엽서 건넴 → seoa_card_given=true
+  // All-first-choices → gets the postcard item (menu with '엽서를 만들어') + gives it
   const { state } = await play(() => 0);
   assert.equal(state.vars.seoa_card_given, true);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Endings tests — robust text-match picker for the 4-way ending menu
+// ────────────────────────────────────────────────────────────────────────────
+
+// (a) ep4_choice='run' → final_ending()[0] === 'run'
+test('ending run: 도망 choice → final_ending returns run, endings_seen includes run', async () => {
+  const picker = makeEndingPicker(EP4_CHOICE_TEXT.run);
+  const { state, sys } = await play(picker);
+  assert.equal(state.vars.ep4_choice, 'run');
+  const [kind] = sys.final_ending();
+  assert.equal(kind, 'run');
+  // record_ending ran in epilogue — verify persistent capture
+  assert.ok(
+    (state.persistent.endings_seen || []).includes('run'),
+    `expected endings_seen to include 'run', got: ${JSON.stringify(state.persistent.endings_seen)}`
+  );
+});
+
+// (b) ep4_choice='friend' + doyun_bond≥25 → final_ending()[0] === 'doyun'
+test('ending doyun: 도윤의리 choice + doyun_bond=30 → final_ending returns doyun, endings_seen includes doyun', async () => {
+  const picker = makeEndingPicker(EP4_CHOICE_TEXT.friend);
+  // Pre-seed doyun_bond to satisfy the ≥25 threshold
+  const { state, sys } = await play(picker, { doyun_bond: 30 });
+  assert.equal(state.vars.ep4_choice, 'friend');
+  const [kind] = sys.final_ending();
+  assert.equal(kind, 'doyun');
+  assert.ok(
+    (state.persistent.endings_seen || []).includes('doyun'),
+    `expected endings_seen to include 'doyun', got: ${JSON.stringify(state.persistent.endings_seen)}`
+  );
+});
+
+// (c) reconcile ending: 화해 choice + story naturally builds doyun_bond≥25 + seeding sinc.mingyeol=40
+//     → final_ending returns ['reconcile', 'mingyeol']
+test('ending reconcile: 화해 choice + sinc.mingyeol seeded ≥35 → final_ending returns reconcile', async () => {
+  const picker = makeEndingPicker(EP4_CHOICE_TEXT.reconcile);
+  // Story naturally builds doyun_bond≥25; seed sinc.mingyeol to satisfy ≥35 condition
+  const { state, sys } = await play(picker, {
+    sincere: { seoa: 0, jiu: 0, mingyeol: 40 },
+  });
+  assert.equal(state.vars.ep4_choice, 'reconcile');
+  const [kind] = sys.final_ending();
+  assert.equal(kind, 'reconcile');
+  assert.ok(
+    (state.persistent.endings_seen || []).includes('reconcile'),
+    `expected endings_seen to include 'reconcile', got: ${JSON.stringify(state.persistent.endings_seen)}`
+  );
+});
+
+// (d) ep4_choice='love' + sinc.mingyeol≥40 → final_ending()[0] === 'true', who === 'mingyeol'
+test('ending true(mingyeol): 민결선택 + sinc.mingyeol=50 → final_ending returns true+mingyeol', async () => {
+  const picker = makeEndingPicker(EP4_CHOICE_TEXT.love);
+  const { state, sys } = await play(picker, {
+    sincere: { seoa: 0, jiu: 0, mingyeol: 50 },
+  });
+  assert.equal(state.vars.ep4_choice, 'love');
+  const [kind, who] = sys.final_ending();
+  assert.equal(kind, 'true');
+  assert.equal(who, 'mingyeol');
+  assert.ok(
+    (state.persistent.endings_seen || []).includes('true'),
+    `expected endings_seen to include 'true', got: ${JSON.stringify(state.persistent.endings_seen)}`
+  );
 });

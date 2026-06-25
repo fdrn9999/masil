@@ -82,7 +82,13 @@ SYS_NAMES = {'add_like','add_sincere','add_bond','hname','chapter_start','get_it
 # ep1에 등장하는 default/런타임 변수 (기본 var_names). convert()에서 declarations로 보강.
 # (seoa_like/seoa_sinc 는 게이지 숫자 미러 표시용 → CLAUDE.md #1 따라 변환 단계에서 드롭됨)
 BASE_VARS = {'like','sincere','doyun_bond','inventory','item_flags','doyun_used_chapter','show_gauges',
-    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice'}
+    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice',
+    # 스크립트 내 임시(튜플언팩) 변수: V. 접두사 없으면 엔진 evaluator에서 undefined
+    'ekind','ewho','k','who','who_n','_r',
+    # ep2-4 추가 default 변수
+    'doyun_secret_seen','meet_loc','date3_loc','mingyeol_truth_known','heard_side',
+    'promise_spring','ep4_choice',
+}
 
 def py_to_js(expr):
     e = re.sub(r'\bnot\s+', '! ', expr)
