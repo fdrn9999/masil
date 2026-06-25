@@ -10,47 +10,45 @@ Apply what the task signals; with no signal, baseline only. Read each pack only 
 - **[hard or ambiguous task]** Adaptive thinking scales with difficulty automatically. To go higher, recommend `/effort xhigh` to the user. Depth (capability) cannot be raised: if stuck 2+ times or out-of-spec discovery is needed, report the limit honestly and escalate.
 <!-- FABLIZE:END -->
 
-# CLAUDE.md — 오픈챗 VN 작업 지침
+# CLAUDE.md — 오픈챗 VN 작업 지침 (웹 전용)
 
-Ren'Py 비주얼노벨 *(가제) 오픈챗에서 만나요*. 이 폴더의 `.rpy` 들은 Ren'Py 프로젝트의 `game/` 에 들어가는 구성. 개요·실행법은 `README.md` 참조. 이 문서는 **코드를 고칠 때의 규칙**.
+비주얼노벨 *(가제) 오픈챗에서 만나요* 의 **자체 웹앱**. (원래 Ren'Py였으나 빌드 없는 정적 웹으로 전환 완료 — Ren'Py 코드/변환기는 제거됨.) 개요·실행법은 `README.md`. 이 문서는 **코드를 고칠 때의 규칙**.
 
 ## 환경 (먼저 알 것)
-- **이 머신엔 Ren'Py SDK가 없다 → 실행/lint 불가.** 변경은 정적으로 검증하고, "실행/검증은 런처에서 `Build → lint` + 플레이 필요"라고 정직하게 고지할 것. 됐다고 단정하지 말 것.
-- **진입점:** `label episode1_full` (ep1) → ep2→ep3→ep4→epilogue 가 `jump` 체인. 실제 프로젝트엔 `label start: jump episode1_full` 가 **활성**이어야 함(현재 스크립트엔 주석 처리됨 — 부팅 차단 요인).
-- **Windows 콘솔(cp949) 주의:** 파이썬 헬퍼는 `PYTHONUTF8=1 python3 -X utf8` 로 돌리고, 출력은 콘솔 대신 **파일로 받아 Read**. 한글 경로/✓ 출력에서 깨진다.
+- **빌드 없음·외부 의존성 0.** 브라우저가 `web/`의 ES 모듈을 직접 로드. 번들러/npm install 금지.
+- **테스트:** Node 내장 러너 — `node --test test/*.test.js` (repo 루트). `node --test test/`(디렉터리형)는 이 환경에서 실패하니 글롭/파일명 사용.
+- **콘텐츠 소스:** `web/data/story.json`(전체 스토리 노드 배열) + `web/data/characters.json`. **대사 수정은 story.json을 직접 편집**(Ren'Py 대본은 더 이상 없음 — 옛 버전은 git 히스토리에).
+- **렌더 검증:** UI 변경은 헤드리스 Chrome 스크린샷으로 실제 관찰(grounding). 정적 점검은 관찰이 아님.
+- **Windows 콘솔(cp949) 주의:** 헬퍼는 `PYTHONUTF8=1 python3 -X utf8`, 출력은 파일로 받아 Read. 한글에서 깨진다.
 
 ## 절대 원칙 (어기면 작품이 망가짐)
-1. **진심 게이지 ≠ 점수.** 호감/진심/우정 수치는 **노출 금지**(`show_gauges=False`). 새 장치는 "정답이 하나"가 되면 안 됨 — 진심은 비싸고 되돌릴 수 없게. 피드백은 도윤의 말·친구목록의 '결' 같은 **비수치**로.
-2. **포지셔닝:** 이건 "여러 여자 썸" 게임이 아니라 **우정·진심(도윤) 이야기**. 헷갈리면 주제(우정/진심) 편을 든다. 연애는 소재.
+1. **진심 게이지 ≠ 점수.** 호감/진심/우정 수치는 **노출 금지**. 새 장치는 "정답이 하나"가 되면 안 됨 — 진심은 비싸고 되돌릴 수 없게. 피드백은 도윤의 말·친구목록의 '결' 같은 **비수치**로. (story.json 텍스트에 `[*_like]`/`[*_sinc]`/`[doyun_bond]` 같은 수치 보간이 새지 않게.)
+2. **포지셔닝:** "여러 여자 썸" 게임이 아니라 **우정·진심(도윤) 이야기**. 헷갈리면 주제(우정/진심) 편. 연애는 소재.
 3. **플레이어 대면 텍스트엔 후반 반전(민결·도윤 과거)을 스포하지 말 것.**
 
-## 도윤 말투 (자주 틀리는 부분 → `/vn-voice`)
+## 도윤 말투 (자주 틀리는 부분)
 도윤=21살 동생, 주인공=24살 **형**. 도윤은 능청·장난기 있지만 **형 대접** 필수.
 - 해체(반말)는 OK. 단 **"너/네/니"→"형"**, **"~냐?"→"형 ~해?"**, **명령형(~라/받어)→부탁·청유**, **"야"로 형 부르기 금지**, 형 호칭 살리기.
-- **반대로 MC→도윤 반말("자냐 인마")은 정상 → 고치지 말 것.** 고칠 대상은 `d "..."` / `recv(...,name="도윤")` / `doyun_line`·`_doyun_read`·`doyun_ping` 의 도윤 말뿐.
+- **반대로 MC→도윤 반말("자냐 인마")은 정상 → 고치지 말 것.** 고칠 대상은 story.json의 `{"who":"d", ...}` say, `{"op":"recv","name":"도윤"}`, 그리고 `systems.js`의 `doyun_line`/`_doyun_read` 도윤 말뿐.
 
-## 파일 지도
-- **본편:** `script_ep1~4.rpy`, `script_epilogue.rpy` (한국어 대사). 캐릭터: `n`(나레이션) `mc`(나) `d`(도윤) `s`(서아) `j`(지우) `m`(민결).
-- **UI:** `screens_chat`(마실 채팅) · `screens_map`(2호선) · `screens_meta`(친구목록/진단카드/추억함/갤러리/폰메뉴/도윤푸시).
-- **시스템:** `systems_affection`(게이지·도윤상담·`final_ending`) · `systems_items`(아이템) · `systems_reply`(답장 타이밍 `reply_prompt`) · `systems_extra`(관계라벨·진단·통계·엔딩수집·맥거핀).
-- **연출/설정:** `effects`(안전 사운드·트랜지션·`amb`채널) · `config_web_mobile`(웹/모바일·`scene black` 안전장치).
+## 파일 지도 (`web/`)
+- **콘텐츠:** `data/story.json`(전체 스토리·730노드·40라벨) · `data/characters.json`. 캐릭터: `n`(나레이션) `mc`(나) `d`(도윤) `s`(서아) `j`(지우) `m`(민결).
+- **엔진:** `src/engine.js`(노드 상태머신) · `src/state.js`(상태+localStorage 세이브) · `src/eval_expr.js`(조건/식 평가 `V/S/P` 스코프).
+- **시스템:** `src/systems.js`(게이지·아이템·`final_ending`/`decide_ending`·도윤 상담·`apply_timing`·`record_ending`·`love_type`) · `src/theme.js`(테마·아이템·`ENDING_LIST` 상수).
+- **UI:** `src/ui/stage.js`(배경·대사) · `chat.js`(마실 채팅) · `menu.js`(선택지·입력) · `overlay.js`(상담·토스트·맵 스텁·result_card) · `view_dom.js`(부팅·엔진↔DOM 배선).
 
 ## 코드 컨벤션
-- **새 기능은 가급적 새 `.rpy` 로 추가**(기존 본편 스크립트 최소 수정 = 위험 최소). 본편엔 얇게 `call`/`$` 로만 연결.
-- 사운드/이미지는 **safe-play**: 에셋 없어도 무음/통과(`pmusic/psound/pamb`, 프사 자동연결). 배경은 `Solid()` placeholder 상태.
-- 헬퍼: `recv/send`(채팅), `pmusic/psound/pstop/pamb`(effects), `get_item/give_item/has_item/use_item/was_given`(items), `add_like/add_sincere/unlock_station/chapter_start/consult_doyun/final_ending/record_ending`.
-- 편집 시 `{w=}`·`{p}`·`.format()`·들여쓰기(메뉴 4/8/12)·따옴표 구조 보존. Python2 금지(`basestring`✗ → `str`).
+- **새 기능은 새 모듈로** 추가하고 본편 데이터는 얇게 연결. 한 파일 = 한 책임.
+- 사운드/이미지는 **safe-play**: 에셋 없어도 무음/단색/이니셜로 통과. 배경은 `Solid()` 대체 색 상태.
+- **innerHTML에 들어가는 동적 값(특히 플레이어 닉네임 `mc_name`)은 반드시 escape.**
+- 텍스트 태그 `{w=}`·`{p}`·`{i}` 와 보간 `[var]`/`[[` 규칙 보존. ES 모듈(브라우저 직접 로드) 유지.
 
 ## 스토리/구조 감각
 - 흐름: 매 화 [텍스팅 인터루드 → 도윤 콜백 → 만남 → 장소 분기 → 선택 → wrap+도윤 피드백]. 4화 반복이라 한 화는 의도적으로 변주.
-- 엔딩 7종은 `final_ending()`(`ep4_choice`·`doyun_bond`·게이지) → 에필로그 분기. 추가 엔딩 손대면 `final_ending`·에필로그·`ENDING_LIST`(systems_extra) 셋을 같이 맞출 것.
-- 분량 균형은 `/vn-stats` 로 실측. 보강은 가장 얇은 본편부터.
-
-## 작업 스킬 (프로젝트 루트 `.claude/skills/`)
-- `/vn-stats` — 분량·균형 측정 / `/vn-voice` — 도윤 말투 린트 / `/vn-lint` — Ren'Py 정적 점검(부팅 버그) / `/vn-assets` — 에셋 감사.
+- 엔딩 7종은 `final_ending()`(`ep4_choice`·`doyun_bond`·게이지) → 에필로그 분기. 손대면 `systems.js`의 `final_ending`/`decide_ending` · story.json 에필로그 분기 · `theme.js`의 `ENDING_LIST` 셋을 같이 맞출 것.
 
 ## 스코프
-첫 작품. **"완성이 제일 어렵다"** — 흐름 완성 → 에셋 교체 순서. 큰 신규 시스템(예: 주말 시간 배분)은 완성을 위협하면 보류/단계화.
+첫 작품. **"완성이 제일 어렵다"** — 흐름 완성 → 에셋 교체 순서. 큰 신규 시스템은 완성을 위협하면 보류/단계화.
 
 ## 웹 배포
-GitHub→Vercel(`웹배포가이드_github_vercel.md`). **gui.rpy에 한글 폰트 내장 필수**(웹 한글 깨짐), 권장 해상도 1280×720, `vercel.json`(COOP/COEP).
+GitHub→Vercel. **Root Directory = `web/`**, 빌드 없음, 정적 서빙(`web/vercel.json`). 한글 폰트(Pretendard)는 `web/fonts/`에 내장(`@font-face`) — CDN 의존 없이 모바일/오프라인 안정.
