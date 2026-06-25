@@ -6,7 +6,8 @@ export function makeOverlay(root) {
       return new Promise(resolve => {
         overlayEl.classList.remove('hidden');
         overlayEl.innerHTML = `<div class="modal"><h3>도윤에게 상담하기</h3>
-          <div>도윤: "${escapeHtml(line)}"</div><div class="hint">${escapeHtml(hint)}</div>
+          <div class="doyun-line">도윤: &ldquo;${escapeHtml(line)}&rdquo;</div>
+          <div class="hint">${escapeHtml(hint)}</div>
           <button class="close">고마워, 알겠어</button></div>`;
         overlayEl.querySelector('.close').onclick = () => {
           overlayEl.classList.add('hidden');
@@ -23,10 +24,11 @@ export function makeOverlay(root) {
           const safeDesc  = escapeHtml((type && type[1] != null ? type[1] : ''));
           overlayEl.classList.remove('hidden');
           overlayEl.innerHTML = `<div class="modal result-card">
+            <div class="result-card__label">YOUR ENDING</div>
             <div class="result-card__title">${safeTitle}</div>
             <div class="result-card__type-label">${safeLabel}</div>
             <div class="result-card__desc">${safeDesc}</div>
-            <button class="close result-card__close">확인</button>
+            <button class="close result-card__close">확인 ♡</button>
           </div>`;
           overlayEl.querySelector('.close').onclick = () => {
             overlayEl.classList.add('hidden');
@@ -35,22 +37,18 @@ export function makeOverlay(root) {
           };
         });
       }
-      if (name !== 'subway_map') return Promise.resolve();
-      return new Promise(resolve => {
-        overlayEl.classList.remove('hidden');
-        overlayEl.innerHTML = `<div class="modal map-interstitial"><h3>2호선</h3>
-          <div>새로운 역이 열렸다.</div><button class="close">이동</button></div>`;
-        overlayEl.querySelector('.close').onclick = () => {
-          overlayEl.classList.add('hidden');
-          overlayEl.innerHTML = '';
-          resolve();
-        };
-      });
+      // subway_map is handled by map.js (view_dom delegates before reaching here)
+      return Promise.resolve();
     },
     toast({ kind, text }) {
       const t = document.createElement('div');
-      t.className = 'toast-item' + (kind === 'doyun' ? ' toast-doyun' : '');
-      t.textContent = (kind === 'doyun' ? '도윤 📱  ' : '') + text;
+      if (kind === 'doyun') {
+        t.className = 'toast-doyun';
+        t.textContent = text;
+      } else {
+        t.className = 'toast-item';
+        t.textContent = text;
+      }
       toastEl.appendChild(t);
       setTimeout(() => t.remove(), 3000);
     },

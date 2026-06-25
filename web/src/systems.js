@@ -3,6 +3,15 @@ import { HEROINES, ITEMS, ENDING_LIST } from './theme.js';
 const clamp = v => Math.max(0, Math.min(100, v));
 
 export function makeSystems(state, { onNotify = () => {} } = {}) {
+  // d.1 — per-playthrough var defaults
+  state.defineDefaults({
+    times_ran:      0,      // 도망친 횟수 (거울 통계용)
+    promise_spring: false,  // ★맥거핀: 봄 석촌호수 약속
+  });
+  // d.1 — cross-playthrough persistent defaults (survive localStorage reset)
+  state.persistent.endings_seen = state.persistent.endings_seen ?? [];
+  state.persistent.play_count   = state.persistent.play_count   ?? 0;
+
   const v = state.vars;
   const sys = {
     add_like(who, n) { v.like[who] = clamp(v.like[who] + n); },
@@ -122,6 +131,69 @@ export function makeSystems(state, { onNotify = () => {} } = {}) {
         return ['진심파', '비싼 진심을, 끝내 한 사람에게 건넨.'];
       }
       return table[kind] || ['여행자', '이야기는 아직 끝나지 않았다.'];
+    },
+
+    // ── d.2 NEW helpers (1:1 port from systems_extra.rpy) ────────────────────
+
+    endings_seen_count() {
+      return (state.persistent.endings_seen || []).length;
+    },
+
+    all_endings_seen() {
+      const seen = new Set(state.persistent.endings_seen);
+      return ENDING_LIST.every(([k]) => seen.has(k));
+    },
+
+    // ★ FRIENDS-LIST CORE — returns only label string, never a raw gauge integer
+    rel_subtitle(who) {
+      if (who === 'doyun') {
+        const b = v.doyun_bond || 0;
+        if (b >= 25) return '둘도 없는 친구';
+        if (b >= 12) return '의지가 되는 동생';
+        return '오픈챗 게임 친구';
+      }
+      const l = (v.like    || {})[who] || 0;
+      const s = (v.sincere || {})[who] || 0;
+      if (s >= 60) return '마음이 닿은 사람';
+      if (s >= 35) return '조금씩 진심이 오가는';
+      if (l >= 60 && s < 35) return '잘 보이는 중 (겉도는)';
+      if (l >= 30) return '점점 친해지는';
+      if (l > 0 || s > 0) return '이제 막 알게 된';
+      return '아직 모르는 사이';
+    },
+
+    is_met(who) {
+      return ((v.like    || {})[who] || 0) > 0 ||
+             ((v.sincere || {})[who] || 0) > 0;
+    },
+
+    // ★ MEMORY/DIAGNOSIS — returns array of kept-promise strings, never numbers
+    kept_promises() {
+      const kept = [];
+      if (sys.was_given('sakura_card')) kept.push('서아에게 벚꽃 엽서를 건넸다');
+      if (sys.was_given('warm_can'))    kept.push('지우에게 따뜻한 캔커피를 챙겼다');
+      if (sys.was_given('hangover'))    kept.push('도윤에게 숙취해소제를 다시 쥐여줬다');
+      if (v.promise_spring)             kept.push('봄에 석촌호수에 가자는 약속을 남겼다');
+      return kept;
+    },
+
+    // non-numeric summary — sums internal, only phrase returned
+    heart_vs_like() {
+      const ts = Object.values(v.sincere || {}).reduce((a, b) => a + b, 0);
+      const tl = Object.values(v.like    || {}).reduce((a, b) => a + b, 0);
+      if (ts > tl)     return '진심 > 호감 — 점수보다 마음을 줬다.';
+      if (tl > ts * 2) return '호감 ≫ 진심 — 잘 보이는 데 능했다.';
+      return '호감 ≈ 진심 — 그 사이 어딘가.';
+    },
+
+    // depends on final_ending() + hname (both already ported above)
+    who_remained() {
+      const [kind, who] = sys.final_ending();
+      if (kind === 'doyun')     return '도윤';
+      if (kind === 'reconcile') return '민결, 그리고 도윤';
+      if (['run', 'fishtank', 'lonely'].includes(kind)) return '— (아무도)';
+      if (who) return sys.hname(who);
+      return '—';
     },
 
     apply_timing(who, mode) {

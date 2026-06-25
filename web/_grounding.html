@@ -27,6 +27,7 @@ import { makeStage }   from './src/ui/stage.js';
 import { makeChat }    from './src/ui/chat.js';
 import { makeMenu }    from './src/ui/menu.js';
 import { makeOverlay } from './src/ui/overlay.js';
+import { makeMap }     from './src/ui/map.js';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -63,11 +64,12 @@ const harness = document.getElementById('harness');
   const st = makeStage(frame, backgrounds);
   st.scene({ bg: 'room' });
   // don't await — let the Promise pend; we just want the rendered state
+  // Use mc (light color #cfd4e6) to verify luminance guard makes name legible
   st.say({
-    who: 'd',
-    name: '도윤',
-    color: '#2fb574',
-    text: '형 이거 {i}진짜{/i} 잘 만들었다?{p}한 줄 더.',
+    who: 'mc',
+    name: '진호',
+    color: '#cfd4e6',
+    text: '(mc name legibility test — should be dark on cream textbox)',
   });
 })();
 
@@ -150,6 +152,26 @@ const harness = document.getElementById('harness');
     title: '그날 그 손을 끝까지',
     type: ['의리파', '사랑보다 곁을 택한. 가장 단단한 걸 끝까지 지킨.'],
   });
+})();
+
+// ── 8. 2호선 캔디 루프 맵 ─────────────────────────────────────────────────────
+(() => {
+  const frame = makeFrame(harness, '⑧ 2호선 map (jamsil+sinchon default open + hapjeong+seongsu)', `
+    <div id="stage"></div>
+    <div id="overlay" class="hidden"></div>
+    <div id="toast"></div>
+  `);
+
+  // Seed: some unlocked stations; currentStation = last = seongsu
+  const fakeState = {
+    vars: {
+      __stations: ['jamsil', 'sinchon', 'hapjeong', 'seongsu'],
+    },
+  };
+
+  const mapInst = makeMap(frame, { sys: null, state: fakeState });
+  // show() returns a Promise (resolves on close) — don't await, just let it render
+  mapInst.show();
 })();
 </script>
 </body>
