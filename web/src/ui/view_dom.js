@@ -14,6 +14,7 @@ import { makeAudio }      from '../audio.js';
 import { makeSettingsUI } from './settings_ui.js';
 import { makeTitle }      from './title.js';
 import { makeSaveLoad, requestResume } from './saveload.js';
+import { makePlayback }   from '../playback.js';
 
 const AVATAR_FILES = {
   '도윤': 'images/avatar/avatar_doyun.png',
@@ -91,8 +92,11 @@ async function boot() {
   const phone = makePhone(root, { sys, state });
   const settingsUI = makeSettingsUI(root, { settings, audio });
 
-  const stage = makeStage(root, script.backgrounds || {});
-  const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES, audio });
+  // Playback controller (skip/auto mode + dialogue history + rollback snapshots).
+  // Passed into stage + chat so they record history (used by save previews / backlog / Task-4 skip-auto).
+  const playback = makePlayback();
+  const stage = makeStage(root, script.backgrounds || {}, playback);
+  const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES, audio, playback });
   const menu = makeMenu(root, { audio });
 
   let isChatOpen = false;
@@ -175,20 +179,9 @@ async function boot() {
   const engine = new Engine({ script, characters, state, sys, evaluator: makeEvaluator(state, sys), view });
   const autosave = () => state.saveAuto(engine.position());
 
-  // ── playback (history for buildMeta) ─────────────────────────────────────
-  // view_dom doesn't instantiate makePlayback itself — the engine/stage push
-  // history entries via view.say. We expose a minimal playback shim here so
-  // saveload.buildMeta can call playback.history().
-  // Real playback module is owned by the calling test suite; here we wrap the
-  // stage's internal history if available, otherwise return an empty array.
-  const playback = {
-    history() {
-      // stage.history() is wired in stage.js (Task 1); fall back gracefully.
-      return (stage && typeof stage.history === 'function') ? stage.history() : [];
-    },
-  };
-
   // ── Save/Load UI ───────────────────────────────────────────────────────────
+  // `playback` (the real makePlayback instance) is already in scope and is fed
+  // by stage/chat as the player reads — so buildMeta previews are populated.
   const saveLoad = makeSaveLoad(root, { state, engine, playback, audio });
 
   // ── Mount game buttons (⚙️/📱) only after the game starts, not on the title. ──
@@ -213,7 +206,7 @@ async function boot() {
   function quickload() {
     const q = state.peekQuick();
     if (q) {
-      requestResume(q);
+      requestResume(q, 'quick');   // slotKey → boot calls loadQuick() to restore vars
     } else {
       overlay.toast({ text: '퀵세이브가 없어요' });
     }
