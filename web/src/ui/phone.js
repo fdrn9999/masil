@@ -66,7 +66,7 @@ function renderFriends(sys, state) {
   for (const k of heroineOrder) {
     if (sys.is_met(k)) {
       anyMet = true;
-      heroineRows += friendRow(esc(sys.hname(k)), k);
+      heroineRows += friendRow(sys.hname(k), k);  // friendRow escapes internally
     }
   }
 
@@ -196,7 +196,7 @@ function renderGallery(sys, state) {
   return `
     <div class="ph-panel ph-panel--gallery">
       <div class="ph-panel__title ph-panel__title--light">갤러리 — 엔딩 수집</div>
-      <div class="ph-gallery-sub">${esc(seenCount)} / ${esc(total)} 발견</div>
+      <div class="ph-gallery-sub">${seenCount} / ${total} 발견</div>
       <div class="ph-gallery-list">
         ${endingRows}
       </div>
@@ -239,14 +239,17 @@ export function makePhone(root, { sys, state }) {
 
   // Sub-screen registry
   const registry = {
-    masil_friends: (s, st) => renderFriends(s, st),
-    memory_box:    (s, st) => renderMemory(s, st),
-    gallery:       (s, st) => renderGallery(s, st),
+    masil_friends: renderFriends,
+    memory_box:    renderMemory,
+    gallery:       renderGallery,
   };
 
   function showMenu() {
     layerEl.classList.remove('hidden');
-    layerEl.innerHTML = `<div class="ph-scrim" data-action="close">${renderMenu()}</div>`;
+    // No data-action="close" on the scrim div — scrim-click-to-close is
+    // handled by the e.target===scrim listener in wireActions (avoids
+    // double close()). The 닫기 button keeps data-action="close".
+    layerEl.innerHTML = `<div class="ph-scrim">${renderMenu()}</div>`;
     wireActions(layerEl, null);
   }
 
@@ -259,7 +262,20 @@ export function makePhone(root, { sys, state }) {
   }
 
   function wireActions(el, currentScreenId) {
-    // Scrim click-to-close (only on the scrim itself, not card)
+    // ── keydown lifecycle (root-cause fix) ──────────────────────────────
+    // Each render replaces innerHTML and re-runs wireActions. Without
+    // removing the prior handler first, listeners stack on `document`: a
+    // stale (e.g. menu) Escape handler fires alongside the current one,
+    // flicker-closing the phone, and listeners leak for the page lifetime.
+    // Remove the previous handler before attaching exactly one new handler.
+    if (el._keyHandler) {
+      document.removeEventListener('keydown', el._keyHandler);
+      el._keyHandler = null;
+    }
+
+    // Scrim click-to-close (only on the scrim itself, not the card).
+    // The scrim div has NO data-action="close", so this is the single
+    // close path for a scrim click (no double close()).
     const scrim = el.querySelector('.ph-scrim');
     if (scrim) {
       scrim.addEventListener('click', e => {
@@ -267,40 +283,29 @@ export function makePhone(root, { sys, state }) {
       });
     }
 
-    // close buttons
+    // Navigate: sub-screen → back to menu; menu → close.
+    function goBack() {
+      if (currentScreenId) showMenu();
+      else close();
+    }
+
+    // close buttons (닫기)
     el.querySelectorAll('[data-action="close"]').forEach(btn => {
-      btn.onclick = () => {
-        if (currentScreenId) {
-          // from sub-screen, go back to menu
-          showMenu();
-        } else {
-          close();
-        }
-      };
+      btn.onclick = goBack;
     });
 
     // menu entries
     el.querySelectorAll('[data-screen]').forEach(btn => {
-      btn.onclick = () => {
-        const screenId = btn.getAttribute('data-screen');
-        showScreen(screenId);
-      };
+      btn.onclick = () => showScreen(btn.getAttribute('data-screen'));
     });
 
-    // Escape key
-    function onKey(e) {
-      if (e.key === 'Escape') {
-        document.removeEventListener('keydown', onKey);
-        if (currentScreenId) {
-          showMenu();
-        } else {
-          close();
-        }
-      }
-    }
+    // Escape: same behavior as 닫기 — sub-screen → menu, menu → close.
+    // Re-rendering (showMenu/close) removes this handler at the top of the
+    // next wireActions / in close(); we don't remove it here to keep one
+    // consistent ownership point.
+    const onKey = e => { if (e.key === 'Escape') goBack(); };
     document.addEventListener('keydown', onKey);
-    // Store cleanup reference so we can remove on re-render
-    el._keyHandler = onKey;
+    el._keyHandler = onKey;  // exactly one live handler at any time
   }
 
   function open() {
