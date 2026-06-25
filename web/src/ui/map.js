@@ -150,11 +150,12 @@ function buildSVG(currentStation, stationsArr, mapW, mapH) {
   </svg>`;
 }
 
-export function makeMap(root, { sys, state }) {
+export function makeMap(root, { sys, state, audio = null }) {
   const overlayEl = root.querySelector('#overlay');
 
   function show() {
     return new Promise(resolve => {
+      if (audio) audio.playSfx('se_station');   // 2호선 맵 진입음
       const vars = (state && state.vars) ? state.vars : {};
       const unlockedStations = vars.__stations || [];
 

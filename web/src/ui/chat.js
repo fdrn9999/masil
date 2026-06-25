@@ -1,4 +1,4 @@
-export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
+export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio = null }) {
   const wrap = root.querySelector('#chat');
   let log, minutes = 0;
 
@@ -41,7 +41,9 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
         setTimeout(() => {
           col.innerHTML = `<div class="sender">${escapeHtml(name || '')}</div>
             <div class="bubble">${escapeHtml(text)}</div><div class="meta">${fmtTime()}</div>`;
-          scrollBottom(); resolve();
+          scrollBottom();
+          if (audio) { audio.playSfx('se_msg_recv'); audio.vibrate(10); }  // mobile messenger feel
+          resolve();
         }, 800);
       });
     },
@@ -50,6 +52,7 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
       row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>
         <div class="meta"><span class="read">읽음</span><br>${fmtTime()}</div>`;
       log.appendChild(row); scrollBottom();
+      if (audio) audio.playSfx('se_msg_send');
       return Promise.resolve();
     },
     waitTap() {

@@ -10,7 +10,7 @@
   },
   {
    "op": "amb",
-   "file": "audio/se/amb_street.ogg"
+   "file": "audio/se/amb_street.wav"
   },
   {
    "op": "say",
@@ -288,7 +288,7 @@
   },
   {
    "op": "sound",
-   "file": "audio/se/se_phone.ogg"
+   "file": "audio/se/se_phone.wav"
   },
   {
    "op": "say",

@@ -965,3 +965,242 @@ html, body {
   background: rgba(138,144,163,.08);
   transform: none;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   ⚙️ 설정 버튼 + 설정 패널 (settings_ui.js)
+   z-index: settings-btn 80 (same row as phone-btn, positioned further left)
+   settings-layer 90 (same tier as phone-layer — own scrim)
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Settings button (⚙️) — matches phone-btn pastel cream/blush style ── */
+.settings-btn {
+  position: absolute;
+  top: 3.5%;
+  right: calc(1.5% + 68px);   /* 68px gap keeps it left of the 📱 phone button */
+  z-index: 80;
+  background: linear-gradient(135deg, #fff7f0, #ffe6ee);
+  color: var(--ink);
+  border: 2px solid #ffffff;
+  border-radius: 18px;
+  padding: 7px 12px;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -8px rgba(180,140,160,.6), 0 2px 0 rgba(255,255,255,.7) inset;
+  transition: transform .12s, box-shadow .12s;
+}
+.settings-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 26px -8px rgba(180,140,160,.8);
+}
+
+/* ── Settings layer (full-cover, own z-order) ── */
+.st-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+.st-layer:not(.hidden) {
+  pointer-events: auto;
+}
+
+/* ── Scrim backdrop ── */
+.st-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(90, 74, 85, .52);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8%;
+}
+
+/* ── Settings panel card ── */
+.st-panel {
+  background: linear-gradient(160deg, #fff7f0 0%, #fdeee4 100%);
+  border-radius: var(--r-xl);
+  padding: 28px 32px 26px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 24px 50px -20px rgba(180,140,160,.55), 0 5px 0 #fff inset;
+  border: 2px solid rgba(255,255,255,.9);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Panel header: title + X button ── */
+.st-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.st-panel__title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.st-panel__x {
+  width: 32px; height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,.7);
+  color: #9a8893;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 10px -4px rgba(180,140,160,.4);
+  transition: transform .12s, color .12s;
+}
+.st-panel__x:hover { transform: scale(1.1); color: var(--blush-deep); }
+
+/* ── Setting row: label + control ── */
+.st-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.st-label {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--ink);
+  min-width: 52px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+/* ── Slider wrapper: track + value readout ── */
+.st-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 0;
+}
+
+.st-val {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink-soft);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ── Pastel range slider: track (blush→mint gradient) + thumb (cream + shadow) ── */
+.st-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 0;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--blush), var(--mint));
+  outline: none;
+  cursor: pointer;
+}
+
+/* Chrome/Edge thumb */
+.st-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff7f0, #ffe6ee);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 4px 10px -3px rgba(180,140,160,.65), 0 2px 0 rgba(255,255,255,.5) inset;
+  transition: transform .1s;
+}
+.st-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.st-slider::-webkit-slider-thumb:active { transform: scale(1.22); }
+
+/* Firefox thumb */
+.st-slider::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff7f0, #ffe6ee);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 4px 10px -3px rgba(180,140,160,.65);
+  cursor: pointer;
+  transition: transform .1s;
+}
+.st-slider::-moz-range-thumb:hover { transform: scale(1.15); }
+
+/* Firefox track */
+.st-slider::-moz-range-track {
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--blush), var(--mint));
+}
+
+/* ── Toggle row ── */
+.st-row--toggle {
+  align-items: center;
+}
+
+/* Cute pill toggle: blush-deep when ON, ink-soft when OFF */
+.st-toggle {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.st-toggle__input {
+  opacity: 0;
+  width: 0; height: 0;
+  position: absolute;
+}
+
+.st-toggle__track {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-pill);
+  background: var(--blush);
+  border: 2px solid rgba(255,255,255,.7);
+  box-shadow: 0 3px 8px -3px rgba(180,140,160,.45) inset;
+  transition: background .2s;
+}
+
+.st-toggle__input:checked ~ .st-toggle__track {
+  background: linear-gradient(135deg, var(--blush-deep), #ff7d9c);
+}
+
+.st-toggle__thumb {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 3px 7px -2px rgba(180,140,160,.6);
+  transition: transform .2s;
+}
+
+.st-toggle__input:checked ~ .st-toggle__thumb {
+  transform: translateX(24px);
+}
+
+/* ── Close button row ── */
+.st-panel__close-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.st-close-btn {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--lav-deep);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  transition: opacity .12s;
+}
+.st-close-btn:hover { opacity: .72; }
