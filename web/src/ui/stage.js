@@ -1,4 +1,4 @@
-export function makeStage(root, backgrounds) {
+export function makeStage(root, backgrounds, playback = null) {
   const stage = root.querySelector('#stage');
   const box = root.querySelector('#textbox');
   const nameEl = root.querySelector('#name');
@@ -32,19 +32,53 @@ export function makeStage(root, backgrounds) {
 
   return {
     scene({ bg }) { if (bg && backgrounds[bg]) stage.style.backgroundColor = backgrounds[bg]; },
-    say({ name, color, text }) {
+    say(a) {
+      // Record history before showing
+      if (playback) playback.pushHistory({ who: a.who, name: a.name, text: a.text });
+
       return new Promise(resolve => {
         box.classList.remove('hidden');
-        nameEl.textContent = name || '';
-        nameEl.style.color = legibleNameColor(color);
-        nameEl.style.display = name ? 'block' : 'none';
-        lineEl.innerHTML = renderTags(text);
+        nameEl.textContent = a.name || '';
+        nameEl.style.color = legibleNameColor(a.color);
+        nameEl.style.display = a.name ? 'block' : 'none';
+        lineEl.innerHTML = renderTags(a.text);
+
+        let resolved = false;
+        let autoTimer = null;
+
+        function finish(fromClick) {
+          if (resolved) return;
+          resolved = true;
+          if (autoTimer !== null) { clearTimeout(autoTimer); autoTimer = null; }
+          box.removeEventListener('click', onAdv);
+          document.removeEventListener('keydown', onAdv);
+          // If user clicked while in skip/auto, return to normal
+          if (fromClick && playback && (playback.isSkip() || playback.isAuto())) {
+            playback.setMode('normal');
+          }
+          resolve();
+        }
+
         const onAdv = (e) => {
           if (e.type === 'keydown' && !['Enter', ' '].includes(e.key)) return;
-          box.removeEventListener('click', onAdv); document.removeEventListener('keydown', onAdv);
-          resolve();
+          finish(true);
         };
-        box.addEventListener('click', onAdv); document.addEventListener('keydown', onAdv);
+
+        if (playback && playback.isSkip()) {
+          // Skip mode: auto-resolve after tiny delay; click cancels skip and resolves
+          box.addEventListener('click', onAdv);
+          document.addEventListener('keydown', onAdv);
+          autoTimer = setTimeout(() => finish(false), 30);
+        } else if (playback && playback.isAuto()) {
+          // Auto mode: resolve after autoDelay; click resolves immediately and returns to normal
+          box.addEventListener('click', onAdv);
+          document.addEventListener('keydown', onAdv);
+          autoTimer = setTimeout(() => finish(false), playback.autoDelay(a.text));
+        } else {
+          // Normal mode: wait for click/Enter/Space
+          box.addEventListener('click', onAdv);
+          document.addEventListener('keydown', onAdv);
+        }
       });
     },
     waitAdvance() {

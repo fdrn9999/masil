@@ -1,0 +1,68 @@
+/**
+ * playback.js — pure playback controller (no DOM).
+ * Manages skip/auto mode, dialogue history, and rollback snapshots.
+ */
+
+const VALID_MODES = new Set(['normal', 'skip', 'auto']);
+
+export function makePlayback(opts = {}) {
+  const HISTORY_LIMIT = opts.historyLimit ?? 200;
+  const SNAPSHOT_LIMIT = opts.snapshotLimit ?? 60;
+
+  let _mode = 'normal';
+  const _history = [];
+  const _snapshots = [];
+
+  return {
+    // --- mode ---
+    get mode() { return _mode; },
+
+    setMode(m) {
+      if (!VALID_MODES.has(m)) throw new Error(`Invalid mode: ${m}`);
+      _mode = m;
+    },
+
+    isSkip() { return _mode === 'skip'; },
+    isAuto() { return _mode === 'auto'; },
+
+    toggleSkip() {
+      _mode = _mode === 'skip' ? 'normal' : 'skip';
+    },
+
+    toggleAuto() {
+      _mode = _mode === 'auto' ? 'normal' : 'auto';
+    },
+
+    // --- auto delay ---
+    autoDelay(text) {
+      return Math.min(6000, 700 + (text?.length || 0) * 45);
+    },
+
+    // --- history ---
+    pushHistory({ who, name, text }) {
+      _history.push({ who, name, text });
+      if (_history.length > HISTORY_LIMIT) _history.shift();
+    },
+
+    history() { return [..._history]; },
+
+    clearHistory() { _history.length = 0; },
+
+    // --- rollback snapshots ---
+    pushSnapshot(snap) {
+      // Deep-clone vars so later mutation of the original doesn't corrupt the snapshot
+      const stored = {
+        vars: JSON.parse(JSON.stringify(snap.vars)),
+        pos: snap.pos,
+      };
+      _snapshots.push(stored);
+      if (_snapshots.length > SNAPSHOT_LIMIT) _snapshots.shift();
+    },
+
+    popSnapshot() {
+      return _snapshots.length > 0 ? _snapshots.pop() : null;
+    },
+
+    canRollback() { return _snapshots.length > 0; },
+  };
+}
