@@ -57,6 +57,31 @@ test('interp: [[ yields literal [ without interpolating the bracketed word, plus
   assert.equal(engine.interp('값은 [[ESC] 그리고 [mc_name]'), '값은 [ESC] 그리고 진호');
 });
 
+// recv name interpolation: name:"[mc_name]" must be resolved via interp at runtime
+test('recv: name with [mc_name] interpolated', async () => {
+  const recvLog = [];
+  const view = recordingView(0);
+  view.recv = async (a) => { recvLog.push(a); };
+  const inlineScript = {
+    labels: { recv_test: 0 },
+    nodes: [
+      { op: 'label', name: 'recv_test' },
+      { op: 'recv', name: '[mc_name]', text: '안녕' },
+      { op: 'return' },
+    ]
+  };
+  const state = new GameState();
+  state.defineDefaults({ like: { seoa: 0 }, sincere: { seoa: 0 }, mc_name: '진호',
+    inventory: {}, item_flags: {}, doyun_bond: 0 });
+  const sys = makeSystems(state, {});
+  const engine = new Engine({ script: inlineScript, characters, state, sys,
+    evaluator: makeEvaluator(state, sys), view });
+  await engine.start('recv_test');
+  assert.equal(recvLog.length, 1, 'recv should have been called once');
+  assert.equal(recvLog[0].name, '진호', `recv name should be interpolated to 진호, got: ${recvLog[0].name}`);
+  assert.equal(recvLog[0].text, '안녕');
+});
+
 // FIX I-1 regression: menu nested inside if-then body must propagate jump upward correctly.
 // Before fix, the resolved number from _gotoLabel was returned through _execList but then
 // the outer if handler also called _gotoLabel on an already-resolved number — swallowing it.

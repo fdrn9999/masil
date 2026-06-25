@@ -1,5 +1,5 @@
 import unittest
-from rpy2json import parse_lines, parse_declarations, convert, py_to_js
+from rpy2json import parse_lines, parse_declarations, convert, py_to_js, convert_files
 
 class TestDecls(unittest.TestCase):
     def test_parse_lines_strips_comments_blanks(self):
@@ -158,6 +158,30 @@ class TestGaugeMirrorSkip(unittest.TestCase):
         # set 노드(미러 셋업) 없음 — say(label/끝)만 남아야
         self.assertNotIn("set", ops)
         self.assertEqual(out["nodes"][1], {"op": "say", "who": "n", "text": "끝"})
+
+
+class TestMulti(unittest.TestCase):
+    def test_concat_labels_offset(self):
+        import tempfile, os, io
+        a = 'label episode1_full:\n    "a"\n    jump episode2_full\n'
+        b = 'label episode2_full:\n    "b"\n    return\n'
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', encoding='utf-8', delete=False) as fa:
+            fa.write(a); pa = fa.name
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', encoding='utf-8', delete=False) as fb:
+            fb.write(b); pb = fb.name
+        try:
+            result = convert_files([pa, pb])
+            nodes = result['nodes']
+            labels = result['labels']
+            # labels['episode2_full'] must point to the flat index of that label node
+            idx = labels['episode2_full']
+            self.assertEqual(nodes[idx], {'op': 'label', 'name': 'episode2_full'})
+            # episode1_full should still be at index 0
+            self.assertEqual(labels['episode1_full'], 0)
+            self.assertEqual(nodes[labels['episode1_full']], {'op': 'label', 'name': 'episode1_full'})
+        finally:
+            os.unlink(pa)
+            os.unlink(pb)
 
 
 if __name__ == '__main__':

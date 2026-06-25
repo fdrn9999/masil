@@ -61,7 +61,7 @@ export class Engine {
       }
       case 'chat_open': await v.chatOpen({ room: this.interp(node.room) }); break;
       case 'chat_close': await v.chatClose(); break;
-      case 'recv': await v.recv({ name: node.name, text: this.interp(node.text), avatar: node.avatar }); break;
+      case 'recv': await v.recv({ name: this.interp(node.name), text: this.interp(node.text), avatar: node.avatar }); break;
       case 'send': await v.send({ text: this.interp(node.text) }); break;
       case 'pause': await v.pause(); break;
       case 'input': {

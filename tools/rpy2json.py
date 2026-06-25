@@ -343,6 +343,15 @@ def _consume(lines, i, nodes, review, var_names=None, sys_names=None):
         nodes.append(node)
     return node, ni
 
+def _nodes_from_lines(lines, var_names, sys_names):
+    """파일 한 개 분량의 lines -> (nodes, review). convert/convert_files 양쪽에서 공유."""
+    nodes, review = [], []
+    i = 0
+    while i < len(lines):
+        node, i = _consume(lines, i, nodes, review, var_names, sys_names)
+    return nodes, review
+
+
 def convert(text, var_names=None, sys_names=None):
     lines = parse_lines(text)
     # declarations로부터 default 변수명을 BASE_VARS에 합집합
@@ -352,10 +361,7 @@ def convert(text, var_names=None, sys_names=None):
         effective_var_names = effective_var_names | set(var_names)
     effective_sys_names = SYS_NAMES if sys_names is None else SYS_NAMES | set(sys_names)
 
-    nodes, review = [], []
-    i = 0
-    while i < len(lines):
-        node, i = _consume(lines, i, nodes, review, effective_var_names, effective_sys_names)
+    nodes, review = _nodes_from_lines(lines, effective_var_names, effective_sys_names)
     # if/menu cond를 일괄 py→js + scope_prefix 변환
     _translate_conds(nodes, effective_var_names, effective_sys_names)
     labels = {}
@@ -365,15 +371,78 @@ def convert(text, var_names=None, sys_names=None):
     return {"nodes": nodes, "labels": labels, "review": review}
 
 
+def convert_files(paths, var_names=None, sys_names=None):
+    """여러 .rpy 파일을 순서대로 읽어 nodes/labels/review/defaults/backgrounds를 통합 반환.
+
+    - defaults/backgrounds: 모든 파일의 declarations를 union
+    - var_names: BASE_VARS + 모든 파일의 default 변수명 + 호출자 전달 var_names
+    - nodes: 파일 순서대로 flat concat
+    - labels: 합산된 nodes 위에서의 flat 인덱스 (cross-file jump 해소)
+    - review: 파일 순서대로 concat
+    """
+    import io as _io
+    # 1. 모든 파일을 읽고 declarations를 먼저 union → var_names 확정
+    all_texts = []
+    all_lines = []
+    merged_defaults = {}
+    merged_backgrounds = {}
+    for path in paths:
+        with _io.open(path, encoding='utf-8') as fh:
+            text = fh.read()
+        all_texts.append(text)
+        lines = parse_lines(text)
+        all_lines.append(lines)
+        decls = parse_declarations(lines)
+        merged_defaults.update(decls["defaults"])
+        merged_backgrounds.update(decls["backgrounds"])
+
+    effective_var_names = BASE_VARS | set(merged_defaults.keys())
+    if var_names is not None:
+        effective_var_names = effective_var_names | set(var_names)
+    effective_sys_names = SYS_NAMES if sys_names is None else SYS_NAMES | set(sys_names)
+
+    # 2. 각 파일의 노드를 순서대로 flat concat
+    combined_nodes = []
+    combined_review = []
+    for lines in all_lines:
+        file_nodes, file_review = _nodes_from_lines(lines, effective_var_names, effective_sys_names)
+        combined_nodes.extend(file_nodes)
+        combined_review.extend(file_review)
+
+    # 3. if/menu cond를 일괄 변환
+    _translate_conds(combined_nodes, effective_var_names, effective_sys_names)
+
+    # 4. labels = flat index over combined_nodes
+    labels = {}
+    for idx, n in enumerate(combined_nodes):
+        if n.get("op") == "label":
+            labels[n["name"]] = idx
+
+    return {
+        "nodes": combined_nodes,
+        "labels": labels,
+        "review": combined_review,
+        "defaults": merged_defaults,
+        "backgrounds": merged_backgrounds,
+    }
+
+
 def main():
     import sys, json, io
-    src, out = sys.argv[1], sys.argv[sys.argv.index('-o') + 1]
-    text = io.open(src, encoding='utf-8').read()
-    decls = parse_declarations(parse_lines(text))
-    var_names = set(BASE_VARS) | set(decls["defaults"].keys())
-    result = convert(text, var_names=var_names, sys_names=SYS_NAMES)
-    result["backgrounds"] = decls["backgrounds"]
-    result["defaults"] = decls["defaults"]
+    # argv 형식: rpy2json.py <src1> [<src2> ...] -o <out>
+    o_idx = sys.argv.index('-o')
+    srcs = sys.argv[1:o_idx]
+    out = sys.argv[o_idx + 1]
+    if len(srcs) == 1:
+        # 단일 파일: 기존 동작 유지
+        text = io.open(srcs[0], encoding='utf-8').read()
+        decls = parse_declarations(parse_lines(text))
+        var_names = set(BASE_VARS) | set(decls["defaults"].keys())
+        result = convert(text, var_names=var_names, sys_names=SYS_NAMES)
+        result["backgrounds"] = decls["backgrounds"]
+        result["defaults"] = decls["defaults"]
+    else:
+        result = convert_files(srcs)
     io.open(out, 'w', encoding='utf-8').write(json.dumps(result, ensure_ascii=False, indent=1))
     with io.open('convert_review.log', 'w', encoding='utf-8') as f:
         f.write('\n'.join(result["review"]))
