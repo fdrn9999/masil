@@ -285,7 +285,7 @@ body { display: flex; align-items: center; justify-content: center; }
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
-  z-index: 70; padding: 8%;
+  z-index: 85; padding: 8%;   /* 위: .phone-btn/.settings-btn(80) — 모달 위로 버튼이 안 새게 */
 }
 
 /* ── Pastel modal card (shared by consult + input + result_card) ── */

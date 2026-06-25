@@ -2,5 +2,7 @@
   "n":  { "name": null, "color": null },
   "mc": { "name": "나",   "color": "#cfd4e6" },
   "d":  { "name": "도윤", "color": "#2fb574" },
-  "s":  { "name": "서아", "color": "#e8553d" }
+  "s":  { "name": "서아", "color": "#e8553d" },
+  "j":  { "name": "지우", "color": "#5ba3d0" },
+  "m":  { "name": "민결", "color": "#b06cc0" }
 }
