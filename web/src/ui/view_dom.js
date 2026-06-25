@@ -13,6 +13,7 @@ import { makeSettings }   from '../settings.js';
 import { makeAudio }      from '../audio.js';
 import { makeSettingsUI } from './settings_ui.js';
 import { makeTitle }      from './title.js';
+import { makeSaveLoad, requestResume } from './saveload.js';
 
 const AVATAR_FILES = {
   '도윤': 'images/avatar/avatar_doyun.png',
@@ -48,6 +49,13 @@ const SUPPLEMENT_DEFAULTS = {
 
 async function boot() {
   const root = document.getElementById('game');
+
+  // ── Check for a reload-resume flag (set by requestResume / slot load) ──────
+  // Must be read BEFORE title is shown so we can skip it and resume directly.
+  const _resumeRaw = sessionStorage.getItem('masil.resumeOnLoad');
+  const _resumePos = _resumeRaw
+    ? (() => { sessionStorage.removeItem('masil.resumeOnLoad'); return JSON.parse(_resumeRaw); })()
+    : null;
 
   // Settings (music/sfx/brightness/vibration) + audio/haptics manager.
   // makeSettings loads saved prefs and applies brightness immediately.
@@ -167,50 +175,134 @@ async function boot() {
   const engine = new Engine({ script, characters, state, sys, evaluator: makeEvaluator(state, sys), view });
   const autosave = () => state.saveAuto(engine.position());
 
+  // ── playback (history for buildMeta) ─────────────────────────────────────
+  // view_dom doesn't instantiate makePlayback itself — the engine/stage push
+  // history entries via view.say. We expose a minimal playback shim here so
+  // saveload.buildMeta can call playback.history().
+  // Real playback module is owned by the calling test suite; here we wrap the
+  // stage's internal history if available, otherwise return an empty array.
+  const playback = {
+    history() {
+      // stage.history() is wired in stage.js (Task 1); fall back gracefully.
+      return (stage && typeof stage.history === 'function') ? stage.history() : [];
+    },
+  };
+
+  // ── Save/Load UI ───────────────────────────────────────────────────────────
+  const saveLoad = makeSaveLoad(root, { state, engine, playback, audio });
+
   // ── Mount game buttons (⚙️/📱) only after the game starts, not on the title. ──
   function mountGameButtons() {
     phone.mountButton();
     settingsUI.mountButton();
   }
 
-  // ── Title screen ───────────────────────────────────────────────────────────
-  const title = makeTitle(root, {
-    hasContinue,
+  // ── gameStarted flag — gates F5/F9 quicksave/quickload ────────────────────
+  let gameStarted = false;
 
-    onNew: async () => {
-      // Bump play_count only for a new playthrough.
-      state.persistent.play_count = (state.persistent.play_count || 0) + 1;
-      state.savePersistent();
-      title.hide();
-      mountGameButtons();
-      await engine.start('episode1_full');
-      // Persist endings_seen after the story finishes.
-      state.savePersistent();
-    },
+  // ── buildMeta (view_dom scope) — delegates to saveLoad ────────────────────
+  const buildMeta = () => saveLoad.buildMeta();
 
-    onContinue: async () => {
-      const pos = state.loadAuto();
-      if (pos) {
-        title.hide();
-        mountGameButtons();
-        await engine.resume(pos);
-        // Persist endings_seen after the story finishes.
-        state.savePersistent();
-      }
-    },
+  // ── Quicksave / Quickload ──────────────────────────────────────────────────
+  function quicksave() {
+    state.saveQuick(engine.position(), buildMeta());
+    overlay.toast({ text: '퀵세이브' });
+    audio && audio.playSfx && audio.playSfx('se_click');
+  }
 
-    // onLoad: save/load menu not yet implemented (Task 3).
-    // A small toast informs the player; Task 3 replaces this handler.
-    onLoad: () => {
-      overlay.toast({ text: '슬롯 불러오기는 준비 중이에요 ☕' });
-    },
+  function quickload() {
+    const q = state.peekQuick();
+    if (q) {
+      requestResume(q);
+    } else {
+      overlay.toast({ text: '퀵세이브가 없어요' });
+    }
+  }
 
-    onSettings: () => {
-      settingsUI.open();
-    },
+  // ── Global keyboard shortcuts (F5 / F9) — only active after game starts ───
+  document.addEventListener('keydown', e => {
+    if (!gameStarted) return;
+    if (e.key === 'F5') {
+      e.preventDefault();
+      quicksave();
+    } else if (e.key === 'F9') {
+      e.preventDefault();
+      quickload();
+    }
   });
 
-  title.show();
+  // ── Resume-on-load path: skip title, restore vars + position, start engine ─
+  // requestResume() stores a _slotKey alongside the peek pos so we can call
+  // state.loadSlot / state.loadQuick here — those calls restore state.vars.
+  if (_resumePos) {
+    const slotKey = _resumePos._slotKey;
+    let resumedPos;
+    if (slotKey === 'quick') {
+      resumedPos = state.loadQuick();
+    } else if (typeof slotKey === 'number') {
+      resumedPos = state.loadSlot(slotKey);
+    } else {
+      // No slot key: use the pos directly (vars stay at last-persisted state)
+      resumedPos = _resumePos;
+    }
+
+    if (resumedPos) {
+      mountGameButtons();
+      gameStarted = true;
+      await engine.resume(resumedPos);
+      state.savePersistent();
+    } else {
+      _showTitle();
+    }
+    return;
+  }
+
+  // ── Normal path: show title ────────────────────────────────────────────────
+  _showTitle();
+
+  function _showTitle() {
+    const title = makeTitle(root, {
+      hasContinue,
+
+      onNew: async () => {
+        // Bump play_count only for a new playthrough.
+        state.persistent.play_count = (state.persistent.play_count || 0) + 1;
+        state.savePersistent();
+        title.hide();
+        mountGameButtons();
+        gameStarted = true;
+        await engine.start('episode1_full');
+        // Persist endings_seen after the story finishes.
+        state.savePersistent();
+      },
+
+      onContinue: async () => {
+        const pos = state.loadAuto();
+        if (pos) {
+          title.hide();
+          mountGameButtons();
+          gameStarted = true;
+          await engine.resume(pos);
+          // Persist endings_seen after the story finishes.
+          state.savePersistent();
+        }
+      },
+
+      onLoad: async () => {
+        // Open save/load menu in load mode.
+        // On the title the engine hasn't started yet, so selection goes through
+        // requestResume (reload path) for uniformity — identical to in-game load.
+        await saveLoad.open('load');
+        // If the player closed without selecting, we just stay on the title.
+      },
+
+      onSettings: () => {
+        settingsUI.open();
+      },
+    });
+
+    title.show();
+  }
 
   // returnToTitle: Task 4's in-game "메뉴로" button calls location.reload().
   // This re-runs boot() which shows the title first — the simplest safe v1.
