@@ -66,14 +66,24 @@ html, body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
+body { display: flex; align-items: center; justify-content: center; }
 
 #game {
   position: relative;
   width: 100vw;
   height: 100vh;
-  max-width: calc(100vh * 16 / 9);
-  margin: 0 auto;
+  max-width: calc(100vh * 16 / 9);   /* PC(가로) → 16:9 레터박스 */
   overflow: hidden;
+  /* 반복 탭 시 대사/UI 텍스트가 드래그·선택되지 않게 */
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+/* 모바일(세로) → 9:16 */
+@media (orientation: portrait) {
+  #game { max-width: none; max-height: calc(100vw * 16 / 9); }
+}
+/* 입력 필드(닉네임 등)에서만 선택/입력 허용 */
+#game input, #game textarea {
+  user-select: text; -webkit-user-select: text; -webkit-touch-callout: default;
 }
 
 #stage {
