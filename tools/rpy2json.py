@@ -76,7 +76,8 @@ def _unquote(s):
 
 SYS_NAMES = {'add_like','add_sincere','add_bond','hname','chapter_start','get_item','has_item',
     'item_count','use_item','give_item','was_given','unlock_station','doyun_ping','doyun_line',
-    'decide_ending','final_ending','apply_timing','bitter_candidate'}
+    'decide_ending','final_ending','apply_timing','bitter_candidate',
+    'record_ending','ending_title','love_type'}
 
 # ep1에 등장하는 default/런타임 변수 (기본 var_names). convert()에서 declarations로 보강.
 # (seoa_like/seoa_sinc 는 게이지 숫자 미러 표시용 → CLAUDE.md #1 따라 변환 단계에서 드롭됨)
