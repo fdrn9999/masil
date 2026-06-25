@@ -14,10 +14,12 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
   function hideCue() { if (cueEl) cueEl.classList.add('hidden'); }
 
   // A click on any interactive layer must NOT advance the line beneath it.
-  function isUiClick(t) {
-    return !!(t && t.closest && t.closest(
-      '#choices, #overlay, #chat, #toast, #title-layer, #sysmenu-bar, ' +
-      '#backlog-layer, .ph-layer, .st-layer, .sl-layer, .phone-btn, .settings-btn'));
+  function isUiClick(t, overChat) {
+    // 채팅 중 나레이션(say)일 땐 채팅 탭으로도 진행되게 #chat 을 차단 목록에서 뺀다.
+    const base = '#choices, #overlay, #toast, #title-layer, #sysmenu-bar, ' +
+      '#backlog-layer, .ph-layer, .st-layer, .sl-layer, .phone-btn, .settings-btn';
+    const sel = overChat ? base : ('#chat, ' + base);
+    return !!(t && t.closest && t.closest(sel));
   }
   // A keyboard advance has no click target/scrim — block it while a blocking
   // overlay (phone/backlog/save/settings/map) is open so the line behind it
@@ -92,6 +94,10 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
 
       return new Promise(resolve => {
         box.classList.remove('hidden');
+        // 채팅이 열린 상태의 say(나레이션)는 채팅 뒤에 숨지 않게 위로 띄우고,
+        // 채팅 탭으로도 진행되게 한다. (say 끝나면 다시 숨겨 채팅을 깨끗이)
+        const overChat = !!root.querySelector('#chat:not(.hidden)');
+        if (overChat) game.classList.add('say-over-chat');
         nameEl.textContent = a.name || '';
         nameEl.style.color = legibleNameColor(a.color);
         nameEl.style.display = a.name ? 'block' : 'none';
@@ -110,6 +116,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
           document.removeEventListener('keydown', onKey);
           hideCue();
           ctrl.cancel();
+          if (overChat) { game.classList.remove('say-over-chat'); box.classList.add('hidden'); }
         }
         function finish(fromUser) {
           if (resolved) return;
@@ -127,7 +134,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
           finish(true);
         }
         function onAdv(e) {
-          if (isUiClick(e.target)) return;   // taps on UI layers don't advance
+          if (isUiClick(e.target, overChat)) return;   // taps on UI layers don't advance
           advanceOrComplete();
         }
         function onKey(e) {

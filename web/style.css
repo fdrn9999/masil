@@ -183,6 +183,11 @@ body { display: flex; align-items: center; justify-content: center; }
   background: linear-gradient(180deg, #fbf6ff 0%, #f6fbff 100%);
 }
 
+/* 채팅이 열린 채 나레이션(say)이 뜰 때: 텍스트박스를 채팅 위로 올리고,
+   채팅은 살짝 어둡게 — '속마음이 끼어드는' 오버레이처럼 보이게. (stage.js say-over-chat) */
+#game.say-over-chat #textbox { z-index: 55; box-shadow: 0 -12px 34px -12px rgba(90,74,85,.45); }
+#game.say-over-chat #chat    { filter: brightness(0.82); transition: filter .2s; }
+
 /* Topbar: blush→lav gradient, Jua room name, online dot */
 #chat .topbar {
   flex: 0 0 auto;
@@ -1930,9 +1935,9 @@ body { display: flex; align-items: center; justify-content: center; }
 /* ── (F) ‘클릭/터치하면 다음’ 깜빡임 큐 ──────────────────────────────── */
 #advance-cue {
   position: absolute;
-  right: 22px;
-  bottom: calc(26% + 16px);
-  z-index: 65;                 /* 위: #choices(60) / 아래: #overlay(70) */
+  right: 24px;
+  bottom: 4.5%;                /* 대사창 안 우하단 — 시스템바(텍스트창 위)와 안 겹치게 */
+  z-index: 65;                 /* 위: #choices(60) / 아래: #overlay(85) */
   pointer-events: none;
   padding: 4px 12px;
   border-radius: 999px;

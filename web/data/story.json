@@ -421,7 +421,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_warm.mp3",
-   "fadein": 1.0
+   "fadein": 1
   },
   {
    "op": "scene",
@@ -532,7 +532,7 @@
   {
    "op": "say",
    "who": "n",
-   "text": "{size=50}Ep.1{/size}\\n\\n빠르게 불타는 썸"
+   "text": "{size=50}Ep.1{/size}{p}{p}빠르게 불타는 썸"
   },
   {
    "op": "scene",
@@ -1008,7 +1008,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_seoa.mp3",
-   "fadein": 1.0
+   "fadein": 1
   },
   {
    "op": "toast",
@@ -1545,7 +1545,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_seoa.mp3",
-   "fadein": 1.0
+   "fadein": 1
   },
   {
    "op": "say",
@@ -1781,7 +1781,7 @@
   {
    "op": "say",
    "who": "n",
-   "text": "{size=50}Ep.2{/size}\\n\\n문래, 그 골목의 밤"
+   "text": "{size=50}Ep.2{/size}{p}{p}문래, 그 골목의 밤"
   },
   {
    "op": "scene",
@@ -2635,7 +2635,7 @@
   {
    "op": "say",
    "who": "n",
-   "text": "{size=50}Ep.3{/size}\\n\\n천천히, 진짜가 되는"
+   "text": "{size=50}Ep.3{/size}{p}{p}천천히, 진짜가 되는"
   },
   {
    "op": "scene",
@@ -2980,7 +2980,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_warm.mp3",
-   "fadein": 1.0
+   "fadein": 1
   },
   {
    "op": "say",
@@ -3202,7 +3202,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_warm.mp3",
-   "fadein": 1.0
+   "fadein": 1
   },
   {
    "op": "say",
@@ -3562,7 +3562,7 @@
   {
    "op": "say",
    "who": "n",
-   "text": "{size=50}Ep.4{/size}\\n\\n돌아온 이름"
+   "text": "{size=50}Ep.4{/size}{p}{p}돌아온 이름"
   },
   {
    "op": "scene",
@@ -3911,7 +3911,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_night_talk.mp3",
-   "fadein": 1.0
+   "fadein": 1
   },
   {
    "op": "say",
@@ -4014,7 +4014,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_warm.mp3",
-   "fadein": 1.0
+   "fadein": 1
   },
   {
    "op": "say",
@@ -4643,7 +4643,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_warm.mp3",
-   "fadein": 2.0
+   "fadein": 2
   },
   {
    "op": "say",
@@ -5031,7 +5031,7 @@
   {
    "op": "music",
    "file": "audio/bgm/bgm_warm.mp3",
-   "fadein": 2.0
+   "fadein": 2
   },
   {
    "op": "say",
@@ -5125,7 +5125,7 @@
   {
    "op": "say",
    "who": "n",
-   "text": "{size=42}그 시절,\\n우리가 좋아했던 사람들에게{/size}"
+   "text": "{size=42}그 시절,{p}우리가 좋아했던 사람들에게{/size}"
   },
   {
    "op": "pause"
