@@ -15,7 +15,26 @@ export function makeOverlay(root) {
         };
       });
     },
-    callScreen({ name }) {
+    callScreen({ name, title, type }) {
+      if (name === 'result_card') {
+        return new Promise(resolve => {
+          const safeTitle = escapeHtml((title != null ? title : '엔딩'));
+          const safeLabel = escapeHtml((type && type[0] != null ? type[0] : ''));
+          const safeDesc  = escapeHtml((type && type[1] != null ? type[1] : ''));
+          overlayEl.classList.remove('hidden');
+          overlayEl.innerHTML = `<div class="modal result-card">
+            <div class="result-card__title">${safeTitle}</div>
+            <div class="result-card__type-label">${safeLabel}</div>
+            <div class="result-card__desc">${safeDesc}</div>
+            <button class="close result-card__close">확인</button>
+          </div>`;
+          overlayEl.querySelector('.close').onclick = () => {
+            overlayEl.classList.add('hidden');
+            overlayEl.innerHTML = '';
+            resolve();
+          };
+        });
+      }
       if (name !== 'subway_map') return Promise.resolve();
       return new Promise(resolve => {
         overlayEl.classList.remove('hidden');
