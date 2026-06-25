@@ -7,6 +7,7 @@ import { makeStage } from './stage.js';
 import { makeChat } from './chat.js';
 import { makeMenu } from './menu.js';
 import { makeOverlay } from './overlay.js';
+import { makeMap }     from './map.js';
 
 const AVATAR_FILES = {
   '도윤': 'images/avatar/avatar_doyun.png',
@@ -71,6 +72,7 @@ async function boot() {
 
   // UI modules
   const overlay = makeOverlay(root);
+  const map     = makeMap(root, { sys: null, state });   // sys not needed for map
   const sys = makeSystems(state, { onNotify: n => overlay.toast(n) });
   const stage = makeStage(root, script.backgrounds || {});
   const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES });
@@ -125,6 +127,9 @@ async function boot() {
         const title = sys.ending_title(kind);
         const type = sys.love_type();
         await overlay.callScreen({ name: a.name, title, type });
+      } else if (a.name === 'subway_map') {
+        // Real 2호선 candy-loop map — replaces overlay interstitial stub
+        await map.show();
       } else {
         await overlay.callScreen(a);
       }

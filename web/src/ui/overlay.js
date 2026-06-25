@@ -37,17 +37,8 @@ export function makeOverlay(root) {
           };
         });
       }
-      if (name !== 'subway_map') return Promise.resolve();
-      return new Promise(resolve => {
-        overlayEl.classList.remove('hidden');
-        overlayEl.innerHTML = `<div class="modal map-interstitial"><h3>2호선</h3>
-          <div>새로운 역이 열렸다.</div><button class="close">이동</button></div>`;
-        overlayEl.querySelector('.close').onclick = () => {
-          overlayEl.classList.add('hidden');
-          overlayEl.innerHTML = '';
-          resolve();
-        };
-      });
+      // subway_map is handled by map.js (view_dom delegates before reaching here)
+      return Promise.resolve();
     },
     toast({ kind, text }) {
       const t = document.createElement('div');
