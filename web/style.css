@@ -628,3 +628,339 @@ html, body {
 }
 
 .map-panel__close:hover { transform: translateY(-2px); }
+
+/* ══════════════════════════════════════════════════════════════════
+   📱 폰 레이어 + 메뉴 + 서브화면 (phone.js)
+   z-index 90 — above chat/textbox/overlay-engine (70), below toast (top-most)
+   Non-blocking: never resolves engine Promises.
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Floating phone button ── */
+.phone-btn {
+  position: absolute;
+  top: 3.5%;
+  right: 1.5%;
+  z-index: 80;
+  background: #1f2333cc;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform .12s, background .12s;
+}
+.phone-btn:hover { transform: scale(1.08); background: #1f2333ee; }
+
+/* ── Phone layer (own container, full-cover) ── */
+.ph-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;   /* hidden state — pass clicks through */
+}
+.ph-layer:not(.hidden) {
+  pointer-events: auto;   /* visible state — capture clicks */
+}
+
+/* ── Scrim (semi-transparent backdrop) ── */
+.ph-scrim {
+  position: absolute;
+  inset: 0;
+  background: #00000088;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8%;
+}
+
+/* ── Shared panel base ── */
+.ph-panel {
+  border-radius: 14px;
+  padding: 24px 30px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 82vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 24px 50px -20px rgba(30,20,50,.6), 0 4px 0 rgba(255,255,255,.15) inset;
+}
+
+/* Light variant — 친구목록 (#fffdf7) */
+.ph-panel--light {
+  background: #fffdf7;
+}
+
+/* Dark variant — 추억함 (#1f2333) */
+.ph-panel--dark {
+  background: #1f2333;
+}
+
+/* Gallery variant — 갤러리 (#15151f, darker) */
+.ph-panel--gallery {
+  background: #15151f;
+}
+
+/* ── Panel title ── */
+.ph-panel__title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  color: #2f3447;
+}
+.ph-panel__title--light {
+  color: #ffffff;
+}
+
+/* ── Divider (친구목록 between pinned doyun and heroines) ── */
+.ph-divider {
+  height: 1px;
+  background: #e6e3da;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* ── Friend row ── */
+.ph-friend-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Colored-initial avatar */
+.ph-avatar {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: #fff;
+  flex: 0 0 auto;
+  box-shadow: 0 5px 12px -4px rgba(0,0,0,.25), 0 2px 0 rgba(255,255,255,.4) inset;
+}
+
+.ph-friend-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ph-friend-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ph-friend-name {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 400;
+  color: #2f3447;
+}
+
+/* 고정 badge (도윤 pin) */
+.ph-friend__badge {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: #2fb574;
+  background: rgba(47,181,116,.12);
+  border-radius: var(--r-pill);
+  padding: 2px 8px;
+}
+
+/* Non-numeric '결' subtitle — NEVER shows gauge numbers */
+.ph-friend-subtitle {
+  font-size: 18px;
+  color: #8a90a3;
+  font-weight: 500;
+}
+
+/* ── Empty state ── */
+.ph-empty {
+  font-size: 17px;
+  color: #9aa0b3;
+  font-weight: 500;
+}
+.ph-empty--light {
+  font-size: 20px;
+  color: #9aa0b3;
+}
+
+/* ── Close button row (right-aligned) ── */
+.ph-panel__close-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.ph-close-btn {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: #6c7cf0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  transition: opacity .12s;
+}
+.ph-close-btn:hover { opacity: .72; }
+
+/* ── 추억함 rows ── */
+.ph-mem-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.ph-mem-icon {
+  font-size: 32px;
+  line-height: 1.1;
+  flex: 0 0 auto;
+}
+
+.ph-mem-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ph-mem-nameline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ph-mem-name {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  color: #ffffff;
+}
+
+.ph-mem-tag {
+  font-size: 15px;
+  color: #6c7cf0;
+  font-weight: 600;
+}
+
+.ph-mem-desc {
+  font-size: 16px;
+  color: #9aa0b3;
+  max-width: 540px;
+  line-height: 1.5;
+}
+
+/* ── 갤러리 subtitle ── */
+.ph-gallery-sub {
+  font-size: 18px;
+  color: #8a90a3;
+  font-weight: 500;
+}
+
+/* ── 갤러리 rows ── */
+.ph-gallery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ph-gallery-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ph-gallery-bullet {
+  font-size: 20px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.ph-gallery-label {
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* ── 갤러리 footer ── */
+.ph-gallery-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ph-gallery-all-star {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  color: #ffcf5a;
+}
+
+.ph-gallery-doyun {
+  font-size: 18px;
+  color: #9fe7c2;
+  font-weight: 500;
+}
+
+.ph-gallery-cg {
+  font-size: 15px;
+  color: #8a90a3;
+  margin-top: 4px;
+}
+
+/* ── Phone menu card ── */
+.ph-menu-card {
+  background: #fffdf7;
+  border-radius: 14px;
+  padding: 24px 30px;
+  min-width: 260px;
+  max-width: 400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 20px 44px -18px rgba(30,20,50,.55), 0 4px 0 rgba(255,255,255,.7) inset;
+  border: 2px solid rgba(255,255,255,.9);
+}
+
+.ph-menu-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  color: #2f3447;
+}
+
+.ph-menu-entry {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: #2f3447;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 6px 0;
+  border-radius: var(--r-sm);
+  transition: background .1s, transform .1s;
+}
+.ph-menu-entry:hover {
+  background: rgba(108,124,240,.08);
+  transform: translateX(3px);
+}
+
+.ph-menu-entry--close {
+  font-size: 20px;
+  color: #8a90a3;
+  margin-top: 4px;
+}
+.ph-menu-entry--close:hover {
+  background: rgba(138,144,163,.08);
+  transform: none;
+}

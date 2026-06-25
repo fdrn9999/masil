@@ -8,6 +8,7 @@ import { makeChat } from './chat.js';
 import { makeMenu } from './menu.js';
 import { makeOverlay } from './overlay.js';
 import { makeMap }     from './map.js';
+import { makePhone }   from './phone.js';
 
 const AVATAR_FILES = {
   '도윤': 'images/avatar/avatar_doyun.png',
@@ -74,6 +75,9 @@ async function boot() {
   const overlay = makeOverlay(root);
   const map     = makeMap(root, { sys: null, state });   // sys not needed for map
   const sys = makeSystems(state, { onNotify: n => overlay.toast(n) });
+  // Phone: non-blocking meta-screens (own #phone-layer, z-index 90, never touches engine await)
+  const phone = makePhone(root, { sys, state });
+  phone.mountButton();
   const stage = makeStage(root, script.backgrounds || {});
   const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES });
   const menu = makeMenu(root);
