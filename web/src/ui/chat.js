@@ -52,6 +52,12 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {} }) {
       log.appendChild(row); scrollBottom();
       return Promise.resolve();
     },
+    waitTap() {
+      return new Promise(resolve => {
+        const onTap = () => { wrap.removeEventListener('click', onTap); resolve(); };
+        wrap.addEventListener('click', onTap);
+      });
+    },
   };
 }
 function escapeHtml(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }

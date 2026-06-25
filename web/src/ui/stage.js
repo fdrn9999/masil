@@ -32,5 +32,15 @@ export function makeStage(root, backgrounds) {
         box.addEventListener('click', onAdv); document.addEventListener('keydown', onAdv);
       });
     },
+    waitAdvance() {
+      return new Promise(resolve => {
+        const onAdv = (e) => {
+          if (e.type === 'keydown' && !['Enter', ' '].includes(e.key)) return;
+          stage.removeEventListener('click', onAdv); document.removeEventListener('keydown', onAdv);
+          resolve();
+        };
+        stage.addEventListener('click', onAdv); document.addEventListener('keydown', onAdv);
+      });
+    },
   };
 }
