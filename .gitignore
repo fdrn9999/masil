@@ -3,3 +3,4 @@ node_modules/
 .DS_Store
 tools/convert_review.log
 .superpowers/
+__pycache__/
