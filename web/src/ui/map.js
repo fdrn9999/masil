@@ -35,29 +35,21 @@ function buildSVG(currentStation, stationsArr, mapW, mapH) {
     const cx = parseFloat(px(st.x));
     const cy = parseFloat(py(st.y));
 
-    let nodeColor, labelColor, glyph, glyphSize, isLocked;
+    let labelColor, isLocked;
     if (here) {
-      nodeColor = MAP.node_here;    // blush-red
-      labelColor = MAP.node_here;
-      glyph = '◉';
-      glyphSize = 44;
+      labelColor = MAP.node_here;   // blush-red
       isLocked = false;
     } else if (open) {
-      nodeColor = MAP.node_open;    // mint green
-      labelColor = MAP.name_txt;
-      glyph = '●';
-      glyphSize = 30;
+      labelColor = MAP.name_txt;    // mint green node, ink label
       isLocked = false;
     } else {
-      nodeColor = MAP.node_lock;    // grey
-      labelColor = '#9a9a9a';
-      glyph = '●';
-      glyphSize = 30;
+      labelColor = '#9a9a9a';       // grey
       isLocked = true;
     }
 
     const dotR = here ? 18 : 12;
-    const dotFill = here ? MAP.node_here : (open ? MAP.node_open : MAP.node_lock);
+    // Current dot uses the glossy radial gradient; others flat.
+    const dotFill = here ? 'url(#map-here-grad)' : (open ? MAP.node_open : MAP.node_lock);
 
     // Label placement: decide above vs below based on y position
     // stations near top (y < 0.5): label above; stations near bottom (y >= 0.5): label below
@@ -201,6 +193,7 @@ export function makeMap(root, { sys, state }) {
       overlayEl.classList.remove('hidden');
       overlayEl.innerHTML = `
         <div class="map-panel">
+          <button class="map-panel__x" aria-label="닫기">×</button>
           <div class="map-panel__header">
             <div class="map-panel__title-block">
               <span class="map-panel__badge">2</span>
@@ -220,13 +213,20 @@ export function makeMap(root, { sys, state }) {
         </div>
       `;
 
+      function onKey(e) {
+        if (e.key === 'Escape') dismiss();
+      }
+
       function dismiss() {
+        document.removeEventListener('keydown', onKey);
         overlayEl.classList.add('hidden');
         overlayEl.innerHTML = '';
         resolve();
       }
 
+      document.addEventListener('keydown', onKey);
       overlayEl.querySelector('.map-panel__close').onclick = dismiss;
+      overlayEl.querySelector('.map-panel__x').onclick = dismiss;
     });
   }
 
