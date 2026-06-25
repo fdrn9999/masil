@@ -19,6 +19,14 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
       '#choices, #overlay, #chat, #toast, #title-layer, #sysmenu-bar, ' +
       '#backlog-layer, .ph-layer, .st-layer, .sl-layer, .phone-btn, .settings-btn'));
   }
+  // A keyboard advance has no click target/scrim — block it while a blocking
+  // overlay (phone/backlog/save/settings/map) is open so the line behind it
+  // doesn't silently advance (+autosave).
+  function isModalOpen() {
+    return !!root.querySelector(
+      '#overlay:not(.hidden), .ph-layer:not(.hidden), #backlog-layer:not(.hidden), ' +
+      '.sl-layer:not(.hidden), .st-layer:not(.hidden)');
+  }
 
   // Asset-hint chip — shows the expected background image PATH + 설명 (PC/mobile split).
   const hintEl = document.createElement('div');
@@ -124,6 +132,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
         }
         function onKey(e) {
           if (!['Enter', ' '].includes(e.key)) return;
+          if (isModalOpen()) return;         // 모달 뒤 대사 진행 금지
           e.preventDefault();                // 포커스된 버튼 우발 재활성화 방지
           advanceOrComplete();
         }
@@ -172,7 +181,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
           resolve();
         }
         function onAdv(e) { if (isUiClick(e.target)) return; finish(true); }
-        function onKey(e) { if (!['Enter', ' '].includes(e.key)) return; e.preventDefault(); finish(true); }
+        function onKey(e) { if (!['Enter', ' '].includes(e.key)) return; if (isModalOpen()) return; e.preventDefault(); finish(true); }
         function tick() {
           if (resolved) return;
           if (playback && playback.isSkip()) { hideCue(); finish(false); return; }

@@ -77,8 +77,17 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
           hide();
         }
         function finish() { if (resolved) return; resolved = true; cleanup(); resolve(); }
-        function onTap() { finish(); }
-        function onKey(e) { if (!['Enter', ' '].includes(e.key)) return; e.preventDefault(); finish(); }
+        // 채팅 내 버튼/링크/입력/백버튼 탭은 진행시키지 않음 (여백·말풍선 탭만 진행)
+        function onTap(e) {
+          if (e && e.target && e.target.closest && e.target.closest('.topbar, button, a, input, textarea')) return;
+          finish();
+        }
+        function onKey(e) {
+          if (!['Enter', ' '].includes(e.key)) return;
+          if (root.querySelector('#overlay:not(.hidden), .ph-layer:not(.hidden), #backlog-layer:not(.hidden), .sl-layer:not(.hidden), .st-layer:not(.hidden)')) return;
+          e.preventDefault();
+          finish();
+        }
         // poll mode so 오토/스킵 토글이 채팅 대기 중에도 진행시킨다 (say와 동일)
         function tick() {
           if (resolved) return;

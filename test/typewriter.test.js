@@ -24,3 +24,9 @@ test('buildFullHtml is balance-safe (auto-closes) and escapes text', () => {
 test('buildFullHtml turns {p} into newline', () => {
   assert.equal(buildFullHtml(parseTags('첫줄{p}둘째줄')), '첫줄\n둘째줄');
 });
+
+test('buildFullHtml re-balances crossed tags into valid nesting', () => {
+  // {i}{b}x{/i}y{/b}  — closing {i} while {b} is still open must not cross
+  assert.equal(buildFullHtml(parseTags('{i}{b}x{/i}y{/b}')),
+    '<em><strong>x</strong></em><strong>y</strong>');
+});

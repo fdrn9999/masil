@@ -25,26 +25,60 @@ function isInstant(settings) {
   return !!(settings && settings.get('textInstant'));
 }
 
+// Split text into grapheme clusters so emoji-with-modifiers / ZWJ / combining
+// marks never reveal as broken fragments. Falls back to code points.
+const _seg = (typeof Intl !== 'undefined' && Intl.Segmenter)
+  ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+  : null;
+function graphemes(s) {
+  if (_seg) { const out = []; for (const g of _seg.segment(s)) out.push(g.segment); return out; }
+  return [...s];
+}
+
+// A tag stack that always emits VALID, properly-nested HTML — even for crossed
+// input like {i}{b}x{/i}y{/b} (closes intervening tags, then reopens them).
+function makeSink(sink) {
+  const stack = [];                          // [{ o, c }] open order
+  return {
+    text: s => sink.html += escapeHtml(s),
+    raw:  s => sink.html += s,
+    open: (o, c) => { sink.html += o; stack.push({ o, c }); },
+    close: c => {
+      let j = -1;
+      for (let m = stack.length - 1; m >= 0; m--) if (stack[m].c === c) { j = m; break; }
+      if (j < 0) return;
+      const above = stack.slice(j + 1);
+      for (let m = stack.length - 1; m >= j; m--) sink.html += stack[m].c;   // close target + above
+      stack.splice(j);
+      for (const it of above) { sink.html += it.o; stack.push(it); }         // reopen intervening
+    },
+    // current html + closers for whatever is still open (valid partial frame)
+    snapshot: () => sink.html + stack.slice().reverse().map(x => x.c).join(''),
+    flush: () => { while (stack.length) sink.html += stack.pop().c; return sink.html; },
+  };
+}
+
+function applyVisual(s, tk) {
+  switch (tk.t) {
+    case 'br': s.raw('\n'); return true;
+    case 'i_open': s.open('<em>', '</em>'); return true;
+    case 'i_close': s.close('</em>'); return true;
+    case 'b_open': s.open('<strong>', '</strong>'); return true;
+    case 'b_close': s.close('</strong>'); return true;
+    case 'size_open': s.open(`<span style="font-size:${clampSize(tk.val)}px">`, '</span>'); return true;
+    case 'size_close': s.close('</span>'); return true;
+  }
+  return false;
+}
+
 // Build the FULL html for a token list (instant reveal: skip mode / tap-complete).
 export function buildFullHtml(tokens) {
-  let html = ''; const stack = [];
-  const openT  = (o, c) => { html += o; stack.push(c); };
-  const closeT = c => { const k = stack.lastIndexOf(c); if (k >= 0) { html += c; stack.splice(k, 1); } };
+  const box = { html: '' }; const s = makeSink(box);
   for (const tk of tokens) {
-    switch (tk.t) {
-      case 'text': html += escapeHtml(tk.s); break;
-      case 'br': html += '\n'; break;
-      case 'i_open': openT('<em>', '</em>'); break;
-      case 'i_close': closeT('</em>'); break;
-      case 'b_open': openT('<strong>', '</strong>'); break;
-      case 'b_close': closeT('</strong>'); break;
-      case 'size_open': openT(`<span style="font-size:${clampSize(tk.val)}px">`, '</span>'); break;
-      case 'size_close': closeT('</span>'); break;
-      // cps/wait/nw → no visual contribution
-    }
+    if (tk.t === 'text') s.text(tk.s);
+    else applyVisual(s, tk);
   }
-  while (stack.length) html += stack.pop();
-  return html;
+  return s.flush();
 }
 
 export function makeTypewriter(settings) {
@@ -52,40 +86,29 @@ export function makeTypewriter(settings) {
   function type(el, text) {
     const tokens = Array.isArray(text) ? text : parseTags(text);
 
-    // Flatten text tokens into per-char ops so timing is uniform.
+    // Flatten text tokens into per-grapheme ops so timing is uniform & safe.
     const ops = [];
     for (const tk of tokens) {
-      if (tk.t === 'text') for (const c of tk.s) ops.push({ t: 'char', c });
+      if (tk.t === 'text') for (const g of graphemes(tk.s)) ops.push({ t: 'char', c: g });
       else ops.push(tk);
     }
 
-    let committed = '';
-    const stack = [];                       // close-tags currently open (open order)
+    const box = { html: '' };
+    const sink = makeSink(box);
     let k = 0, cps = baseCps(settings), autoAdvance = false;
     let done = false, cancelled = false, timer = null, resolveDone;
     const promise = new Promise(r => { resolveDone = r; });
 
-    const paint = () => { el.innerHTML = committed + stack.slice().reverse().join(''); };
-    const openTag  = (o, c) => { committed += o; stack.push(c); };
-    const closeTag = c => { const j = stack.lastIndexOf(c); if (j >= 0) { committed += c; stack.splice(j, 1); } };
+    const paint = () => { el.innerHTML = sink.snapshot(); };
 
     function applyImmediate(op) {
-      switch (op.t) {
-        case 'br': committed += '\n'; break;
-        case 'i_open': openTag('<em>', '</em>'); break;
-        case 'i_close': closeTag('</em>'); break;
-        case 'b_open': openTag('<strong>', '</strong>'); break;
-        case 'b_close': closeTag('</strong>'); break;
-        case 'size_open': openTag(`<span style="font-size:${clampSize(op.val)}px">`, '</span>'); break;
-        case 'size_close': closeTag('</span>'); break;
-        case 'cps': cps = clampCps(op.v); break;
-        case 'nw': autoAdvance = true; break;
-      }
+      if (op.t === 'cps') { cps = clampCps(op.v); return; }
+      if (op.t === 'nw')  { autoAdvance = true; return; }
+      applyVisual(sink, op);   // br / i / b / size
     }
 
     function finalize() {
-      while (stack.length) committed += stack.pop();
-      el.innerHTML = committed;
+      el.innerHTML = sink.flush();
       if (timer !== null) { clearTimeout(timer); timer = null; }
       done = true;
       resolveDone({ autoAdvance });
@@ -95,7 +118,7 @@ export function makeTypewriter(settings) {
       if (cancelled || done) return;
       while (k < ops.length) {
         const op = ops[k];
-        if (op.t === 'char') { committed += escapeHtml(op.c); k++; paint(); timer = setTimeout(step, 1000 / cps); return; }
+        if (op.t === 'char') { sink.text(op.c); k++; paint(); timer = setTimeout(step, 1000 / cps); return; }
         if (op.t === 'wait') { k++; paint(); timer = setTimeout(step, op.ms); return; }
         applyImmediate(op); k++;
       }
@@ -107,7 +130,7 @@ export function makeTypewriter(settings) {
       if (timer !== null) { clearTimeout(timer); timer = null; }
       while (k < ops.length) {                 // commit everything, skip waits
         const op = ops[k];
-        if (op.t === 'char') committed += escapeHtml(op.c);
+        if (op.t === 'char') sink.text(op.c);
         else if (op.t !== 'wait') applyImmediate(op);
         k++;
       }

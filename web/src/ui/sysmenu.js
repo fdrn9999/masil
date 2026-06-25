@@ -102,6 +102,8 @@ export function makeSysMenu(root, {
     root.appendChild(barEl);
     wireButtons();
     refresh();
+    // Re-sync when mode changes anywhere (e.g. a stage tap cancels skip/auto).
+    if (playback && playback.onModeChange) playback.onModeChange(refresh);
   }
 
   return { mountBar, refresh };

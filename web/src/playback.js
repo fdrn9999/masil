@@ -12,6 +12,8 @@ export function makePlayback(opts = {}) {
   let _mode = 'normal';
   const _history = [];
   const _snapshots = [];
+  const _modeListeners = new Set();
+  const _notifyMode = () => { for (const fn of _modeListeners) { try { fn(_mode); } catch (_e) {} } };
 
   return {
     // --- mode ---
@@ -20,6 +22,7 @@ export function makePlayback(opts = {}) {
     setMode(m) {
       if (!VALID_MODES.has(m)) throw new Error(`Invalid mode: ${m}`);
       _mode = m;
+      _notifyMode();
     },
 
     isSkip() { return _mode === 'skip'; },
@@ -27,11 +30,16 @@ export function makePlayback(opts = {}) {
 
     toggleSkip() {
       _mode = _mode === 'skip' ? 'normal' : 'skip';
+      _notifyMode();
     },
 
     toggleAuto() {
       _mode = _mode === 'auto' ? 'normal' : 'auto';
+      _notifyMode();
     },
+
+    // Subscribe to mode changes (e.g. sysmenu bar re-sync). Returns unsubscribe.
+    onModeChange(fn) { _modeListeners.add(fn); return () => _modeListeners.delete(fn); },
 
     // --- auto delay ---
     autoDelay(text) {
