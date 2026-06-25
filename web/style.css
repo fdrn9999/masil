@@ -1,3 +1,12 @@
+/* ── Pretendard variable font — self-hosted woff2 (SIL OFL 1.1, see fonts/OFL.txt) ── */
+@font-face {
+  font-family: "Pretendard";
+  src: url("fonts/PretendardVariable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root { --bg:#15171f; --ink:#eef0f6; }
 * { box-sizing: border-box; margin: 0; }
 html, body { height: 100%; background:#000; color:var(--ink);
