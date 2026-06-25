@@ -160,6 +160,44 @@ class TestGaugeMirrorSkip(unittest.TestCase):
         self.assertEqual(out["nodes"][1], {"op": "say", "who": "n", "text": "끝"})
 
 
+class TestGaugeMirrorGeneral(unittest.TestCase):
+    # Task 2: generalized gauge-mirror strip (CLAUDE.md #1)
+    def test_gauge_strip_general(self):
+        out = convert('label x:\n    $ jiu_like = like["jiu"]\n    n "(지우 — 호감 [jiu_like])"\n    "유지"\n')
+        texts=[n.get('text') for n in out['nodes'] if n['op']=='say']
+        self.assertNotIn('(지우 — 호감 [jiu_like])', texts); self.assertIn('유지', texts)
+        self.assertFalse(any(n['op']=='set' and 'jiu_like' in n.get('expr','') for n in out['nodes']))
+
+    def test_doyun_bond_display_stripped(self):
+        out = convert('label x:\n    n "(도윤 우정 [doyun_bond])"\n')
+        self.assertEqual([n for n in out['nodes'] if n['op']=='say'], [])
+
+    def test_non_gauge_descriptive_line_preserved(self):
+        """ep3 descriptive lines without gauge tokens must NOT be dropped."""
+        out = convert('label x:\n    n "(천천히 데워지는)"\n')
+        texts = [n.get('text') for n in out['nodes'] if n['op']=='say']
+        self.assertIn('(천천히 데워지는)', texts)
+
+
+class TestTupleUnpack(unittest.TestCase):
+    # Task 2: tuple-unpack assignment
+    def test_tuple_unpack(self):
+        out = convert('label x:\n    $ ekind, ewho = final_ending()\n')
+        self.assertEqual(out['nodes'][1], {'op':'set','expr':'[V.ekind, V.ewho] = S.final_ending()'})
+
+    def test_recv_with_comma_in_string_not_tuple(self):
+        """recv with comma in string arg must NOT trigger tuple-unpack."""
+        out = convert('label x:\n    $ recv("a, b", name="도윤")\n')
+        self.assertEqual(out['nodes'][1], {'op':'recv','name':'도윤','text':'a, b'})
+
+
+class TestRenpyCallScreen(unittest.TestCase):
+    # Task 2: renpy.call_screen("X") → {op:call_screen, name:"X"}
+    def test_renpy_call_screen_resultcard(self):
+        out = convert('label x:\n    $ renpy.call_screen("result_card")\n')
+        self.assertEqual(out['nodes'][1], {'op':'call_screen','name':'result_card'})
+
+
 class TestMulti(unittest.TestCase):
     def test_concat_labels_offset(self):
         import tempfile, os, io

@@ -153,13 +153,33 @@ def _convert_dollar(code, review, var_names=None, sys_names=None):
     if re.match(r'^mc_name\s*=\s*tmp', code): return None
     # mc = Character(...) 재정의 → 무시 (이름은 mc_name 보간)
     if re.match(r'^\w+\s*=\s*Character\(', code): return None
-    if code.startswith('renpy.call_screen'): review.append('$ ' + code); return None
+    # renpy.call_screen("X") (결과 미사용 형태) → call_screen op (Task 2)
+    if code.startswith('renpy.call_screen'):
+        m_cs = re.match(r'^renpy\.call_screen\(\s*"([^"]+)"\s*\)', code)
+        if m_cs:
+            return {"op": "call_screen", "name": m_cs.group(1)}
+        review.append('$ ' + code); return None
     if code.startswith('persistent.'):
         # play_count owned by boot (view_dom) — strip script-side increment to avoid double-count (final review I-2)
         if re.match(r'^persistent\.play_count\s*=', code):
             return None
         # other persistent.x = ... → set with P.
         return {"op": "set", "expr": _persistent_expr(code, var_names, sys_names)}
+    # 튜플 언팩 대입: $ a, b = expr  (Task 2)
+    # LHS에 콤마가 있고 = 이후에 나타나는 콤마는 RHS 함수 인자이므로 구분 필요.
+    # 전략: '=' 기준으로 첫 '=' 위치를 찾은 뒤 LHS 부분에만 콤마 검사.
+    # recv/send 등 특수 핸들러를 이미 통과했으므로 여기 도달한 코드만 대상.
+    _eq_idx = code.find('=')
+    if _eq_idx > 0 and code[_eq_idx - 1] not in ('!', '<', '>', '=') and (
+            _eq_idx + 1 >= len(code) or code[_eq_idx + 1] != '='):
+        _lhs = code[:_eq_idx].strip()
+        _rhs = code[_eq_idx + 1:].strip()
+        if ',' in _lhs and re.match(r'^[A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)+$', _lhs):
+            # LHS가 순수 식별자 콤마-목록 → 튜플 언팩
+            _names = [n.strip() for n in _lhs.split(',')]
+            _lhs_js = '[' + ', '.join('V.' + n for n in _names) + ']'
+            _rhs_js = scope_prefix(py_to_js(_rhs), var_names, sys_names)
+            return {"op": "set", "expr": _lhs_js + ' = ' + _rhs_js}
     # 일반 헬퍼 호출/대입 → set
     return {"op": "set", "expr": scope_prefix(py_to_js(code), var_names, sys_names)}
 
@@ -196,20 +216,22 @@ def _translate_conds(nodes, var_names, sys_names):
 
 # CLAUDE.md #1: gauge numbers must never be shown — strip gauge-mirror display (user-approved)
 # 게이지 숫자를 미러링해 플레이어에게 보여주는 표시 줄/셋업을 결정론적으로 드롭한다.
-# 소스(script_ep1.rpy)는 건드리지 않고 생성물(web data)에서만 숨긴다 → 재생성해도 항상 숨겨짐.
-GAUGE_MIRROR_VARS = ('seoa_like', 'seoa_sinc')
+# 소스(.rpy)는 건드리지 않고 생성물(web data)에서만 숨긴다 → 재생성해도 항상 숨겨짐.
+# 일반화(Task 2): ep1 seoa 전용에서 모든 캐릭터+doyun_bond 로 확장.
+#   say 텍스트에 [<name>_like], [<name>_sinc], [doyun_bond] 보간이 있으면 drop.
+#   $ <name>_like = like[...] / $ <name>_sinc = sincere[...] 대입도 drop.
+_GAUGE_MIRROR_SAY_RE = re.compile(r'\[(?:\w+_(?:like|sinc)|doyun_bond)\]')
+_GAUGE_MIRROR_SET_RE = re.compile(r'^\$\s*\w+_(?:like|sinc)\s*=')
 
 def _is_gauge_mirror_line(c):
     """게이지 숫자 미러 표시/셋업 줄이면 True (드롭 대상)."""
-    # 1) 표시용 say 줄: 텍스트에 [seoa_like]/[seoa_sinc] 보간이 들어간 줄
+    # 1) 표시용 say 줄: 텍스트에 [<name>_like]/[<name>_sinc]/[doyun_bond] 보간이 있는 줄
     if c.startswith('"') or _SAY_CHAR_RE.match(c):
-        if any(('[' + v + ']') in c for v in GAUGE_MIRROR_VARS):
+        if _GAUGE_MIRROR_SAY_RE.search(c):
             return True
-    # 2) 셋업 $ 줄: seoa_like / seoa_sinc 에 대입하는 줄
-    if c.startswith('$ '):
-        for v in GAUGE_MIRROR_VARS:
-            if re.match(r'^\$\s*' + re.escape(v) + r'\s*=', c):
-                return True
+    # 2) 셋업 $ 줄: <name>_like / <name>_sinc 에 대입하는 줄
+    if _GAUGE_MIRROR_SET_RE.match(c):
+        return True
     return False
 
 def classify(c, review, var_names=None, sys_names=None):
