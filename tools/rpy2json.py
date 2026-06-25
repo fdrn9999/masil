@@ -238,7 +238,6 @@ def _build_reply_prompt_menu(who):
     choices: 바로 답한다→now, 조금 뜸 들였다 답한다→wait, 지금은 못 본 척한다→ignore.
     Each body: [{set V._r = S.apply_timing("who","mode")}, {say n "[_r]"}]
     """
-    say_r = {"op": "say", "who": "n", "text": "[_r]"}
     modes = [
         ("바로 답한다",           "now"),
         ("조금 뜸 들였다 답한다", "wait"),
@@ -247,9 +246,10 @@ def _build_reply_prompt_menu(who):
     choices = []
     for text, mode in modes:
         expr = f'V._r = S.apply_timing("{who}", "{mode}")'
+        # 각 choice마다 say 노드를 새로 생성 (공유 가변 참조 방지)
         choices.append({
             "text": text,
-            "body": [{"op": "set", "expr": expr}, say_r],
+            "body": [{"op": "set", "expr": expr}, {"op": "say", "who": "n", "text": "[_r]"}],
         })
     return {"op": "menu", "prompt": "답장, 어떻게 할까?", "choices": choices}
 
