@@ -5,10 +5,6 @@
    "name": "episode1_full"
   },
   {
-   "op": "set",
-   "expr": "P.play_count = (P.play_count || 0) + 1"
-  },
-  {
    "op": "scene",
    "bg": "black"
   },
@@ -1724,14 +1720,14 @@
  ],
  "labels": {
   "episode1_full": 0,
-  "ep1_date": 179,
-  "ep1_loc_han": 206,
-  "ep1_loc_karaoke": 214,
-  "ep1_loc_cafe": 223,
-  "ep1_confess": 231,
-  "ep1_end_fast": 240,
-  "ep1_end_slow": 247,
-  "ep1_wrap": 258
+  "ep1_date": 178,
+  "ep1_loc_han": 205,
+  "ep1_loc_karaoke": 213,
+  "ep1_loc_cafe": 222,
+  "ep1_confess": 230,
+  "ep1_end_fast": 239,
+  "ep1_end_slow": 246,
+  "ep1_wrap": 257
  },
  "review": [],
  "backgrounds": {
@@ -1742,7 +1738,8 @@
   "alley": "#2d2a33",
   "han_night": "#1e2a38",
   "street_n": "#1b1f2e",
-  "black": "#000000"
+  "black": "#000000",
+  "white": "#ffffff"
  },
  "defaults": {
   "mc_name": "나",

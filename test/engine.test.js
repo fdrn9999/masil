@@ -56,3 +56,43 @@ test('interp: [[ yields literal [ without interpolating the bracketed word, plus
   const engine = makeEngine(recordingView(0));
   assert.equal(engine.interp('값은 [[ESC] 그리고 [mc_name]'), '값은 [ESC] 그리고 진호');
 });
+
+// FIX I-1 regression: menu nested inside if-then body must propagate jump upward correctly.
+// Before fix, the resolved number from _gotoLabel was returned through _execList but then
+// the outer if handler also called _gotoLabel on an already-resolved number — swallowing it.
+test('FIX I-1: menu nested inside if-then propagates jump to label, does not continue past menu', async () => {
+  // Script: if(true) { menu -> choice A jumps to "done" }; say "UNREACHABLE"; label done; say "LANDED"
+  const inlineScript = {
+    labels: { nested_test: 0, done: 6 },
+    nodes: [
+      { op: 'label', name: 'nested_test' },           // 0
+      { op: 'if', cond: 'true',                       // 1
+        then: [
+          { op: 'menu', prompt: '고를래?', choices: [  // in then-list
+            { text: 'A', body: [ { op: 'jump', label: 'done' } ] }
+          ]}
+        ],
+        else: [] },
+      { op: 'say', who: 'n', text: 'UNREACHABLE' },   // 2  (must NOT be reached)
+      { op: 'say', who: 'n', text: 'UNREACHABLE2' },  // 3
+      { op: 'return' },                                // 4
+      { op: 'say', who: 'n', text: 'UNREACHABLE3' },  // 5
+      { op: 'label', name: 'done' },                  // 6
+      { op: 'say', who: 'n', text: 'LANDED' },        // 7
+      { op: 'return' },                                // 8
+    ]
+  };
+  const state = new GameState();
+  state.defineDefaults({ like: { seoa: 0 }, sincere: { seoa: 0 }, mc_name: '진호',
+    inventory: {}, item_flags: {}, doyun_bond: 0 });
+  const sys = makeSystems(state, {});
+  const view = recordingView(0); // pick first (only) choice
+  const engine = new Engine({ script: inlineScript, characters, state, sys,
+    evaluator: makeEvaluator(state, sys), view });
+  await engine.start('nested_test');
+  const says = view.log.filter(e => e[0] === 'say').map(e => e[1]);
+  // must reach 'LANDED' and must NOT include any 'UNREACHABLE*' text
+  assert.ok(says.includes('LANDED'), `Expected LANDED in says: ${JSON.stringify(says)}`);
+  assert.ok(!says.some(s => s.startsWith('UNREACHABLE')),
+    `Should not reach UNREACHABLE nodes, got: ${JSON.stringify(says)}`);
+});

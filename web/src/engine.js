@@ -93,7 +93,7 @@ export class Engine {
         const r = await this._execList(choices[pick].body || []);
         if (r === 'stop') return 'stop';
         if (r === 'return') return this._doReturn();
-        if (r && r.jump != null) return this._gotoLabel(r.jump);
+        if (r && r.jump != null) return list ? { jump: r.jump } : this._gotoLabel(r.jump);
         break;
       }
       case 'if': {
@@ -101,7 +101,7 @@ export class Engine {
         const r = await this._execList(branch);
         if (r === 'stop') return 'stop';
         if (r === 'return') return this._doReturn();
-        if (r && r.jump != null) return this._gotoLabel(r.jump);
+        if (r && r.jump != null) return list ? { jump: r.jump } : this._gotoLabel(r.jump);
         break;
       }
       case 'jump':

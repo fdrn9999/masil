@@ -24,6 +24,19 @@ class TestDecls(unittest.TestCase):
         self.assertEqual(d["defaults"]["doyun_bond"], 0)
         self.assertEqual(d["defaults"]["like"], {"seoa": 0})
 
+    def test_image_no_bg_prefix_captured(self):
+        """FIX M-2: 'image white = Solid(...)' without bg prefix must be captured."""
+        text = ('image white = Solid("#ffffff")\n'
+                'image black = Solid("#000000")\n'
+                'image bg room = Solid("#23283d")\n')
+        d = parse_declarations(parse_lines(text))
+        self.assertEqual(d["backgrounds"]["white"], "#ffffff",
+            "bare 'image white' should be captured in backgrounds")
+        self.assertEqual(d["backgrounds"]["black"], "#000000",
+            "bare 'image black' should be captured in backgrounds")
+        self.assertEqual(d["backgrounds"]["room"], "#23283d",
+            "existing 'image bg room' should still be captured")
+
 class TestBlocks(unittest.TestCase):
     def test_say_narration_and_char(self):
         out = convert('label start:\n    "나레이션{w=0.3}야"\n    mc "내 대사"\n')
@@ -88,9 +101,28 @@ class TestDollar(unittest.TestCase):
         self.assertEqual(out["nodes"][1]["cond"], 'S.has_item("sakura_card")')
 
     def test_persistent_rhs_scope_prefixed(self):
+        # NOTE: this test is superseded by test_play_count_increment_stripped below (I-2).
+        # The old behavior (producing a set node) is no longer valid — this test now confirms
+        # the INCREMENT line is dropped (returns None). Keep for documentation; see I-2 tests.
         out = convert('label x:\n    $ persistent.play_count = (persistent.play_count or 0) + 1\n')
-        # P. members stay bare (no V./S. injected); other vars get V.
-        self.assertEqual(out["nodes"][1], {"op": "set", "expr": 'P.play_count = (P.play_count || 0) + 1'})
+        # I-2: play_count increment owned by boot (view_dom) — must be stripped from script
+        ops = [n.get("op") for n in out["nodes"]]
+        self.assertNotIn("set", ops)
+
+    # FIX I-2: play_count double-increment prevention
+    def test_play_count_increment_stripped(self):
+        """$ persistent.play_count = ... increment must produce NO set node (owned by boot)."""
+        out = convert('label x:\n    $ persistent.play_count = (persistent.play_count or 0) + 1\n')
+        ops = [n.get("op") for n in out["nodes"]]
+        self.assertNotIn("set", ops, "play_count increment should be stripped (I-2)")
+
+    def test_play_count_condition_kept(self):
+        """if persistent.play_count >= 2: condition node must NOT be stripped."""
+        out = convert('label x:\n    if persistent.play_count >= 2:\n        "x"\n')
+        # Must have an if node with the correct cond
+        if_nodes = [n for n in out["nodes"] if n.get("op") == "if"]
+        self.assertEqual(len(if_nodes), 1, "if node for play_count condition must be kept")
+        self.assertEqual(if_nodes[0]["cond"], "P.play_count >= 2")
 
 
 class TestSpecialCalls(unittest.TestCase):

@@ -19,7 +19,8 @@ def parse_lines(text):
     return out
 
 _CHAR_RE = re.compile(r'^define\s+(\w+)\s*=\s*Character\((.*)\)\s*$')
-_IMG_RE  = re.compile(r'^image\s+bg\s+(\w+)\s*=\s*Solid\("(#[0-9a-fA-F]+)"\)')
+# Matches both 'image bg <name> = Solid(...)' and 'image <name> = Solid(...)' (no bg prefix, e.g. flash bgs)
+_IMG_RE  = re.compile(r'^image\s+(?:bg\s+)?(\w+)\s*=\s*Solid\("(#[0-9a-fA-F]+)"\)')
 _DEF_RE  = re.compile(r'^default\s+(\w+)\s*=\s*(.+)$')
 
 def _parse_character_args(argstr):
@@ -154,7 +155,10 @@ def _convert_dollar(code, review, var_names=None, sys_names=None):
     if re.match(r'^\w+\s*=\s*Character\(', code): return None
     if code.startswith('renpy.call_screen'): review.append('$ ' + code); return None
     if code.startswith('persistent.'):
-        # persistent.play_count = ... → set with P.
+        # play_count owned by boot (view_dom) — strip script-side increment to avoid double-count (final review I-2)
+        if re.match(r'^persistent\.play_count\s*=', code):
+            return None
+        # other persistent.x = ... → set with P.
         return {"op": "set", "expr": _persistent_expr(code, var_names, sys_names)}
     # 일반 헬퍼 호출/대입 → set
     return {"op": "set", "expr": scope_prefix(py_to_js(code), var_names, sys_names)}
