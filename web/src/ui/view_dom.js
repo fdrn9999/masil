@@ -12,6 +12,7 @@ import { makePhone }   from './phone.js';
 import { makeSettings }   from '../settings.js';
 import { makeAudio }      from '../audio.js';
 import { makeSettingsUI } from './settings_ui.js';
+import { makeTitle }      from './title.js';
 
 const AVATAR_FILES = {
   '도윤': 'images/avatar/avatar_doyun.png',
@@ -64,23 +65,24 @@ async function boot() {
   state.defineDefaults(script.defaults || {});
   state.defineDefaults(SUPPLEMENT_DEFAULTS);
 
-  // Persistent: load then bump play_count
+  // Persistent: load saved data. play_count is bumped ONLY on 새로하기 (new game),
+  // not on boot — so continuing or loading doesn't inflate the counter.
   state.loadPersistent();
-  state.persistent.play_count = (state.persistent.play_count || 0) + 1;
-  state.savePersistent();
 
-  // UI modules
+  // Check for an existing autosave (non-destructively) to enable 이어하기.
+  const hasContinue = !!state.peekAuto();
+
+  // UI modules — built but game buttons NOT mounted yet (they appear after the title).
   const overlay = makeOverlay(root);
   const map     = makeMap(root, { sys: null, state, audio });   // sys not needed for map
   const sys = makeSystems(state, { onNotify: n => {
     overlay.toast(n);
     if (n && n.kind === 'item') { audio.playSfx('se_item'); audio.vibrate(25); }
   } });
-  // Phone: non-blocking meta-screens (own #phone-layer, z-index 90, never touches engine await)
+  // Phone + settings button objects are created now but NOT mounted until game starts.
   const phone = makePhone(root, { sys, state });
-  phone.mountButton();
-  // Settings button (⚙️) — non-blocking, mounted left of the phone button
-  makeSettingsUI(root, { settings, audio }).mountButton();
+  const settingsUI = makeSettingsUI(root, { settings, audio });
+
   const stage = makeStage(root, script.backgrounds || {});
   const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES, audio });
   const menu = makeMenu(root, { audio });
@@ -131,9 +133,9 @@ async function boot() {
       if (a.name === 'result_card') {
         // Inject computed ending data before showing the result card overlay
         const [kind] = sys.final_ending();
-        const title = sys.ending_title(kind);
+        const titleStr = sys.ending_title(kind);
         const type = sys.love_type();
-        await overlay.callScreen({ name: a.name, title, type });
+        await overlay.callScreen({ name: a.name, title: titleStr, type });
         audio.vibrate([0, 40, 30, 40]);   // gentle ending haptic
       } else if (a.name === 'subway_map') {
         // Real 2호선 candy-loop map — replaces overlay interstitial stub
@@ -165,11 +167,55 @@ async function boot() {
   const engine = new Engine({ script, characters, state, sys, evaluator: makeEvaluator(state, sys), view });
   const autosave = () => state.saveAuto(engine.position());
 
-  await engine.start('episode1_full');
-  // Persist endings_seen after the story finishes.
-  // record_ending() mutates persistent.endings_seen during the epilogue,
-  // so saving here captures the newly unlocked ending across sessions.
-  state.savePersistent();
+  // ── Mount game buttons (⚙️/📱) only after the game starts, not on the title. ──
+  function mountGameButtons() {
+    phone.mountButton();
+    settingsUI.mountButton();
+  }
+
+  // ── Title screen ───────────────────────────────────────────────────────────
+  const title = makeTitle(root, {
+    hasContinue,
+
+    onNew: async () => {
+      // Bump play_count only for a new playthrough.
+      state.persistent.play_count = (state.persistent.play_count || 0) + 1;
+      state.savePersistent();
+      title.hide();
+      mountGameButtons();
+      await engine.start('episode1_full');
+      // Persist endings_seen after the story finishes.
+      state.savePersistent();
+    },
+
+    onContinue: async () => {
+      const pos = state.loadAuto();
+      if (pos) {
+        title.hide();
+        mountGameButtons();
+        await engine.resume(pos);
+        // Persist endings_seen after the story finishes.
+        state.savePersistent();
+      }
+    },
+
+    // onLoad: save/load menu not yet implemented (Task 3).
+    // A small toast informs the player; Task 3 replaces this handler.
+    onLoad: () => {
+      overlay.toast({ text: '슬롯 불러오기는 준비 중이에요 ☕' });
+    },
+
+    onSettings: () => {
+      settingsUI.open();
+    },
+  });
+
+  title.show();
+
+  // returnToTitle: Task 4's in-game "메뉴로" button calls location.reload().
+  // This re-runs boot() which shows the title first — the simplest safe v1.
+  // (Exported for documentation; wired in Task 4.)
+  // export function returnToTitle() { location.reload(); }
 }
 
 boot().catch(err => console.error('[boot]', err));

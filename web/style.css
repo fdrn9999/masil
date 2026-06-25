@@ -1203,4 +1203,168 @@ html, body {
   border-radius: var(--r-sm);
   transition: opacity .12s;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   Title / Main-menu screen  (Task 2)
+   Layer sits above all game UI; shown at boot, hidden when game starts.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+#title-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 200;              /* above phone (90), settings (100), map (120) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#title-layer.hidden {
+  display: none !important;
+}
+
+/* ── Full-bleed pastel gradient backdrop ────────────────────────────────── */
+.title-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 14%, #ffd8e6 0%, transparent 38%),
+    radial-gradient(circle at 82% 10%, #cdf5e8 0%, transparent 36%),
+    radial-gradient(circle at 75% 88%, #dcd5ff 0%, transparent 42%),
+    radial-gradient(circle at 24% 84%, #ffe4c8 0%, transparent 38%),
+    linear-gradient(160deg, var(--cream) 0%, var(--cream2) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Frosted cream panel (center card) ─────────────────────────────────── */
+.title-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(18px, 3vw, 32px);
+  padding: clamp(28px, 5vw, 52px) clamp(32px, 6vw, 64px) clamp(22px, 4vw, 40px);
+  background: rgba(255, 247, 240, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: var(--r-xl);
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    0 28px 60px -24px rgba(180, 140, 180, 0.48),
+    0 6px 0 rgba(255, 255, 255, 0.6) inset;
+  width: min(480px, 88%);
+  max-width: 92%;
+}
+
+/* ── Logo block ─────────────────────────────────────────────────────────── */
+.title-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.title-logo-img {
+  width: min(340px, 80%);
+  height: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 8px 18px rgba(100, 100, 200, 0.18));
+}
+
+.title-subtitle {
+  font-family: var(--font-body);
+  font-size: clamp(12px, 1.8vw, 16px);
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: .04em;
+  text-align: center;
+}
+
+/* ── Menu button group ──────────────────────────────────────────────────── */
+.title-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.title-btn {
+  width: 100%;
+  padding: 16px 20px;
+  font-family: var(--font-display);
+  font-size: clamp(16px, 2.6vw, 22px);
+  font-weight: 400;
+  border-radius: var(--r-lg);
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: .03em;
+}
+
+/* 새로하기 — blush gradient */
+.title-btn--new {
+  background: linear-gradient(135deg, #ffe6ed, #ffd0dd);
+  box-shadow: 0 10px 22px -10px rgba(255, 120, 160, 0.55), 0 3px 0 #fff inset;
+}
+.title-btn--new:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 28px -10px rgba(255, 100, 140, 0.68), 0 3px 0 #fff inset;
+}
+
+/* 이어하기 — mint gradient (active) */
+.title-btn--continue {
+  background: linear-gradient(135deg, #d8f7ee, #c0ece0);
+  box-shadow: 0 10px 22px -10px rgba(90, 200, 170, 0.55), 0 3px 0 #fff inset;
+}
+.title-btn--continue:not([disabled]):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 28px -10px rgba(70, 190, 160, 0.75), 0 3px 0 #fff inset;
+}
+
+/* 이어하기 — disabled state (no autosave) */
+.title-btn--disabled,
+.title-btn--continue[disabled] {
+  background: linear-gradient(135deg, #ece9e6, #e0dcd9);
+  color: var(--ink-soft);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none !important;
+}
+
+/* 불러오기 — lavender gradient */
+.title-btn--load {
+  background: linear-gradient(135deg, #e8e4ff, #d9d0fc);
+  box-shadow: 0 10px 22px -10px rgba(160, 140, 240, 0.5), 0 3px 0 #fff inset;
+}
+.title-btn--load:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 28px -10px rgba(140, 120, 230, 0.68), 0 3px 0 #fff inset;
+}
+
+/* 설정 — peach/cream ghost style */
+.title-btn--settings {
+  background: linear-gradient(135deg, #fff5ec, #ffe8d4);
+  box-shadow: 0 8px 18px -10px rgba(220, 160, 100, 0.4), 0 3px 0 #fff inset;
+}
+.title-btn--settings:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 24px -10px rgba(210, 140, 80, 0.55), 0 3px 0 #fff inset;
+}
+
+/* ── Version watermark ──────────────────────────────────────────────────── */
+.title-version {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--ink-soft);
+  opacity: 0.55;
+  letter-spacing: .06em;
+  text-align: center;
+  user-select: none;
+}
 .st-close-btn:hover { opacity: .72; }
