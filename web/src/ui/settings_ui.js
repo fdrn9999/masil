@@ -28,6 +28,19 @@ export function makeSettingsUI(root, { settings, audio }) {
   // ── Lifecycle: keydown handler reference for cleanup ────────────────────────
   let _keyHandler = null;
 
+  // ── small builders ───────────────────────────────────────────────────────────
+  function _toggle(id, label, on) {           // on/off 스위치
+    return `
+      <label class="st-toggle" aria-label="${esc(label)}">
+        <input class="st-toggle__input" id="${esc(id)}" type="checkbox" ${on ? 'checked' : ''}>
+        <span class="st-toggle__track"></span>
+        <span class="st-toggle__thumb"></span>
+      </label>`;
+  }
+  function _reset(keys, label) {               // ↺ 항목별 기본값 복원 (data-reset = 콤마구분 키)
+    return `<button class="st-reset" data-reset="${esc(keys)}" aria-label="${esc(label)} 기본값으로" title="기본값으로">↺</button>`;
+  }
+
   // ── Build panel HTML ─────────────────────────────────────────────────────────
   function _buildPanel() {
     const s = settings.all();
@@ -36,8 +49,6 @@ export function makeSettingsUI(root, { settings, audio }) {
     const sfxPct    = Math.round(s.sfx        * 100);
     // brightness 0.6..1.2 → slider 60..120
     const brightVal = Math.round(s.brightness * 100);
-    const vibChecked = s.vibration ? 'checked' : '';
-    const ahChecked  = s.assetHints ? 'checked' : '';
 
     return `
       <div class="st-panel" role="dialog" aria-label="설정">
@@ -46,49 +57,49 @@ export function makeSettingsUI(root, { settings, audio }) {
           <button class="st-panel__x" aria-label="닫기">&#x2715;</button>
         </div>
 
-        <div class="st-row">
+        <div class="st-row st-row--vol">
           <label class="st-label" for="st-music">음악</label>
-          <div class="st-slider-wrap">
-            <input class="st-slider" id="st-music" type="range" min="0" max="100" value="${esc(String(musicPct))}">
+          ${_toggle('st-music-on', '음악 켜기/끄기', s.musicOn)}
+          <div class="st-slider-wrap ${s.musicOn ? '' : 'is-off'}">
+            <input class="st-slider" id="st-music" type="range" min="0" max="100" value="${esc(String(musicPct))}" ${s.musicOn ? '' : 'disabled'}>
             <span class="st-val">${esc(String(musicPct))}</span>
           </div>
+          ${_reset('musicOn,music', '음악')}
         </div>
 
-        <div class="st-row">
+        <div class="st-row st-row--vol">
           <label class="st-label" for="st-sfx">사운드</label>
-          <div class="st-slider-wrap">
-            <input class="st-slider" id="st-sfx" type="range" min="0" max="100" value="${esc(String(sfxPct))}">
+          ${_toggle('st-sfx-on', '사운드 켜기/끄기', s.sfxOn)}
+          <div class="st-slider-wrap ${s.sfxOn ? '' : 'is-off'}">
+            <input class="st-slider" id="st-sfx" type="range" min="0" max="100" value="${esc(String(sfxPct))}" ${s.sfxOn ? '' : 'disabled'}>
             <span class="st-val">${esc(String(sfxPct))}</span>
           </div>
+          ${_reset('sfxOn,sfx', '사운드')}
         </div>
 
-        <div class="st-row">
+        <div class="st-row st-row--vol">
           <label class="st-label" for="st-brightness">밝기</label>
           <div class="st-slider-wrap">
             <input class="st-slider" id="st-brightness" type="range" min="60" max="120" value="${esc(String(brightVal))}">
             <span class="st-val">${esc(String(brightVal))}</span>
           </div>
+          ${_reset('brightness', '밝기')}
         </div>
 
         <div class="st-row st-row--toggle">
           <label class="st-label" for="st-vibration">진동</label>
-          <label class="st-toggle" aria-label="진동 켜기/끄기">
-            <input class="st-toggle__input" id="st-vibration" type="checkbox" ${vibChecked}>
-            <span class="st-toggle__track"></span>
-            <span class="st-toggle__thumb"></span>
-          </label>
+          ${_toggle('st-vibration', '진동 켜기/끄기', s.vibration)}
+          ${_reset('vibration', '진동')}
         </div>
 
         <div class="st-row st-row--toggle">
           <label class="st-label" for="st-asset-hints">에셋 힌트</label>
-          <label class="st-toggle" aria-label="에셋 힌트 켜기/끄기">
-            <input class="st-toggle__input" id="st-asset-hints" type="checkbox" ${ahChecked}>
-            <span class="st-toggle__track"></span>
-            <span class="st-toggle__thumb"></span>
-          </label>
+          ${_toggle('st-asset-hints', '에셋 힌트 켜기/끄기', s.assetHints)}
+          ${_reset('assetHints', '에셋 힌트')}
         </div>
 
         <div class="st-panel__close-row">
+          <button class="st-reset-all" aria-label="모든 설정 기본값으로">기본값으로 초기화</button>
           <button class="st-close-btn">닫기</button>
         </div>
       </div>`;
@@ -138,6 +149,28 @@ export function makeSettingsUI(root, { settings, audio }) {
       });
     }
 
+    // Music on/off toggle — 슬라이더 레벨은 유지, 효과 볼륨만 0/복원
+    const musicOnToggle = panel.querySelector('#st-music-on');
+    if (musicOnToggle) {
+      musicOnToggle.addEventListener('change', () => {
+        settings.set('musicOn', musicOnToggle.checked);
+        audio.refreshVolumes();
+        render();  // 슬라이더 활성/비활성 반영
+      });
+    }
+
+    // SFX on/off toggle
+    const sfxOnToggle = panel.querySelector('#st-sfx-on');
+    if (sfxOnToggle) {
+      sfxOnToggle.addEventListener('change', () => {
+        const on = sfxOnToggle.checked;
+        settings.set('sfxOn', on);
+        audio.refreshVolumes();
+        if (on) audio.playSfx('se_click');  // 켤 때 들리는지 미리듣기
+        render();
+      });
+    }
+
     // Vibration toggle
     const vibToggle = panel.querySelector('#st-vibration');
     if (vibToggle) {
@@ -153,6 +186,26 @@ export function makeSettingsUI(root, { settings, audio }) {
     if (ahToggle) {
       ahToggle.addEventListener('change', () => {
         settings.set('assetHints', ahToggle.checked);
+      });
+    }
+
+    // 항목별 ↺ 기본값 복원
+    panel.querySelectorAll('.st-reset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const keys = (btn.getAttribute('data-reset') || '').split(',').map(k => k.trim()).filter(Boolean);
+        keys.forEach(k => settings.reset(k));
+        audio.refreshVolumes();
+        render();
+      });
+    });
+
+    // 전체 기본값으로 초기화
+    const resetAllBtn = panel.querySelector('.st-reset-all');
+    if (resetAllBtn) {
+      resetAllBtn.addEventListener('click', () => {
+        settings.resetAll();
+        audio.refreshVolumes();
+        render();
       });
     }
 
@@ -173,11 +226,16 @@ export function makeSettingsUI(root, { settings, audio }) {
     }
   }
 
+  // ── render — (re)build panel + rewire; Escape lifecycle stays in open/close ──
+  function render() {
+    layerEl.innerHTML = `<div class="st-scrim">${_buildPanel()}</div>`;
+    _wirePanel();
+  }
+
   // ── open ────────────────────────────────────────────────────────────────────
   function open() {
     layerEl.classList.remove('hidden');
-    layerEl.innerHTML = `<div class="st-scrim">${_buildPanel()}</div>`;
-    _wirePanel();
+    render();
 
     // Attach Escape listener — remove on close to prevent leaks
     if (_keyHandler) {

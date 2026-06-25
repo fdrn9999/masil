@@ -5,7 +5,9 @@
 const STORAGE_KEY = 'masil.settings';
 
 const DEFAULTS = {
+  musicOn:    true,   // 음악 on/off (볼륨 슬라이더와 별개)
   music:      0.8,
+  sfxOn:      true,   // 사운드 on/off
   sfx:        0.9,
   brightness: 1.0,
   vibration:  true,
@@ -50,16 +52,27 @@ export function makeSettings(storage) {
     try { _storage.setItem(STORAGE_KEY, JSON.stringify(_data)); } catch (_e) {}
   }
 
+  function setVal(key, value) {
+    _data[key] = value;
+    save();
+    if (key === 'brightness') applyBrightness(value);
+    if (key === 'assetHints') applyAssetHints(value);
+  }
+
   return {
     get(key) {
       return key in _data ? _data[key] : DEFAULTS[key];
     },
-    set(key, value) {
-      _data[key] = value;
-      save();
-      if (key === 'brightness') applyBrightness(value);
-      if (key === 'assetHints') applyAssetHints(value);
+    set: setVal,
+    // effective volume = 0 when its on/off toggle is off (level is preserved)
+    effective(key) {
+      if (key === 'music') return _data.musicOn ? _data.music : 0;
+      if (key === 'sfx')   return _data.sfxOn   ? _data.sfx   : 0;
+      return key in _data ? _data[key] : DEFAULTS[key];
     },
+    reset(key) { setVal(key, DEFAULTS[key]); },
+    resetAll() { for (const k of Object.keys(DEFAULTS)) setVal(k, DEFAULTS[k]); },
+    defaults() { return Object.assign({}, DEFAULTS); },
     all() {
       return Object.assign({}, _data);
     },

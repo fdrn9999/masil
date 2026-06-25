@@ -7,6 +7,8 @@
  *
  * characters: { [who]: { color, name, ... } }  (from characters.json)
  */
+import { renderTags } from './tags.js';
+
 export function makeBacklog(root, { playback, characters = {} }) {
   let layerEl = null;
   let _escHandler = null;
@@ -29,19 +31,32 @@ export function makeBacklog(root, { playback, characters = {} }) {
     return layerEl;
   }
 
+  // resolve a colour for a speaker name by matching characters.json
+  function colorForName(name) {
+    for (const k in characters) if (characters[k] && characters[k].name === name) return characters[k].color || null;
+    return null;
+  }
+
+  // who/name → { label, color }. narration(독백)=no label; chat send(mc)=나.
+  function displayInfo(who, name) {
+    if (who === 'n') return { label: null, color: null };               // 나레이션/독백
+    if (name) return { label: name, color: (who && characters[who]?.color) || colorForName(name) };
+    if (who === 'mc') return { label: '나', color: null };               // 채팅 보낸 말(플레이어)
+    if (who && characters[who]?.name) return { label: characters[who].name, color: characters[who].color || null };
+    return { label: null, color: null };                                 // 식별 불가 → 독백 취급
+  }
+
   // ── Build entry HTML for one history item ───────────────────────────────────
   function buildEntry({ who, name, text }) {
-    const hasName = !!(name || who);
-    const charColor = (who && characters[who]?.color) || null;
-
-    const nameHtml = hasName
-      ? `<span class="bl-entry__name" ${charColor ? `style="color:${esc(charColor)}"` : ''}>${esc(name || who)}</span>`
+    const { label, color } = displayInfo(who, name);
+    const nameHtml = label
+      ? `<span class="bl-entry__name" ${color ? `style="color:${esc(color)}"` : ''}>${esc(label)}</span>`
       : '';
 
     return `
-      <div class="bl-entry ${hasName ? '' : 'bl-entry--narration'}">
+      <div class="bl-entry ${label ? '' : 'bl-entry--narration'}">
         ${nameHtml}
-        <span class="bl-entry__text">${esc(text || '')}</span>
+        <span class="bl-entry__text">${renderTags(text || '')}</span>
       </div>`;
   }
 

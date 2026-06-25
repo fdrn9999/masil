@@ -1,5 +1,8 @@
+import { renderTags, escapeHtml } from './tags.js';
+
 export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio = null, playback = null }) {
   const wrap = root.querySelector('#chat');
+  const cueEl = root.querySelector('#advance-cue');
   let log, minutes = 0;
 
   function fmtTime() {
@@ -44,7 +47,7 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
         const delay = (playback && playback.isSkip()) ? 60 : 800;
         setTimeout(() => {
           col.innerHTML = `<div class="sender">${escapeHtml(name || '')}</div>
-            <div class="bubble">${escapeHtml(text)}</div><div class="meta">${fmtTime()}</div>`;
+            <div class="bubble">${renderTags(text)}</div><div class="meta">${fmtTime()}</div>`;
           scrollBottom();
           if (audio) { audio.playSfx('se_msg_recv'); audio.vibrate(10); }  // mobile messenger feel
           resolve();
@@ -56,7 +59,7 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
       if (playback) playback.pushHistory({ who: 'mc', name: null, text });
 
       const row = document.createElement('div'); row.className = 'bubble-row right';
-      row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>
+      row.innerHTML = `<div class="bubble">${renderTags(text)}</div>
         <div class="meta"><span class="read">읽음</span><br>${fmtTime()}</div>`;
       log.appendChild(row); scrollBottom();
       if (audio) audio.playSfx('se_msg_send');
@@ -64,10 +67,14 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
     },
     waitTap() {
       return new Promise(resolve => {
-        const onTap = () => { wrap.removeEventListener('click', onTap); resolve(); };
+        if (cueEl) cueEl.classList.remove('hidden');   // tap-to-continue cue during chat
+        const onTap = () => {
+          wrap.removeEventListener('click', onTap);
+          if (cueEl) cueEl.classList.add('hidden');
+          resolve();
+        };
         wrap.addEventListener('click', onTap);
       });
     },
   };
 }
-function escapeHtml(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }

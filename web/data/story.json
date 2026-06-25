@@ -9,10 +9,6 @@
    "bg": "black"
   },
   {
-   "op": "amb",
-   "file": "audio/se/amb_street.wav"
-  },
-  {
    "op": "say",
    "who": "n",
    "text": "{i}…또, 혼자다.{/i}"

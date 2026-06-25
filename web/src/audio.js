@@ -38,7 +38,7 @@ export function makeAudio(settings) {
       try {
         const a = _newAudio('audio/se/' + name + '.wav');
         if (!a) return;
-        a.volume = Math.max(0, Math.min(1, settings.get('sfx')));
+        a.volume = Math.max(0, Math.min(1, settings.effective('sfx')));
         _tryPlay(a);
       } catch (_e) {}
     },
@@ -51,7 +51,7 @@ export function makeAudio(settings) {
       try {
         const a = _newAudio(path);
         if (!a) return;
-        a.volume = Math.max(0, Math.min(1, settings.get('sfx')));
+        a.volume = Math.max(0, Math.min(1, settings.effective('sfx')));
         _tryPlay(a);
       } catch (_e) {}
     },
@@ -67,7 +67,7 @@ export function makeAudio(settings) {
         const a = _newAudio(file);
         if (!a) return;
         a.loop   = true;
-        a.volume = Math.max(0, Math.min(1, settings.get('music')));
+        a.volume = Math.max(0, Math.min(1, settings.effective('music')));
         _musicEl = a;
         _tryPlay(a);
       } catch (_e) {}
@@ -92,7 +92,7 @@ export function makeAudio(settings) {
         const a = _newAudio(file);
         if (!a) return;
         a.loop   = true;
-        a.volume = Math.max(0, Math.min(1, settings.get('sfx') * 0.6));
+        a.volume = Math.max(0, Math.min(1, settings.effective('sfx') * 0.6));
         _ambEl = a;
         _tryPlay(a);
       } catch (_e) {}
@@ -113,10 +113,10 @@ export function makeAudio(settings) {
     refreshVolumes() {
       try {
         if (_musicEl) {
-          _musicEl.volume = Math.max(0, Math.min(1, settings.get('music')));
+          _musicEl.volume = Math.max(0, Math.min(1, settings.effective('music')));
         }
         if (_ambEl) {
-          _ambEl.volume = Math.max(0, Math.min(1, settings.get('sfx') * 0.6));
+          _ambEl.volume = Math.max(0, Math.min(1, settings.effective('sfx') * 0.6));
         }
       } catch (_e) {}
     },

@@ -6,7 +6,7 @@ export function makeMenu(root, { audio = null } = {}) {
       return new Promise(resolve => {
         choicesEl.classList.remove('hidden');
         choicesEl.innerHTML = prompt
-          ? `<div style="color:#fff;margin-bottom:8px;text-align:center">${escapeHtml(prompt)}</div>`
+          ? `<div style="color:var(--ink);font-family:var(--font-display);font-size:clamp(15px,2.4vw,20px);margin-bottom:14px;text-align:center;background:rgba(255,255,255,.75);padding:8px 18px;border-radius:999px;box-shadow:0 4px 12px -6px rgba(180,140,160,.4)">${escapeHtml(prompt)}</div>`
           : '';
         choices.forEach((text, i) => {
           const b = document.createElement('button');

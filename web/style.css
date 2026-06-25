@@ -134,6 +134,7 @@ body { display: flex; align-items: center; justify-content: center; }
 #choices {
   position: absolute;
   inset: 0;
+  z-index: 60;   /* above the opaque #chat(50) so in-chat menus are visible/clickable */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1008,7 +1009,7 @@ body { display: flex; align-items: center; justify-content: center; }
 .st-layer {
   position: absolute;
   inset: 0;
-  z-index: 90;
+  z-index: 210;   /* modal tier — above #title-layer(200) so 설정 opens from the title */
   pointer-events: none;
 }
 .st-layer:not(.hidden) {
@@ -1196,10 +1197,49 @@ body { display: flex; align-items: center; justify-content: center; }
   transform: translateX(24px);
 }
 
+/* ── Volume row: label · on/off toggle · slider · ↺ reset ── */
+.st-row--vol { gap: 12px; }
+
+/* dimmed slider when its on/off toggle is OFF (level preserved) */
+.st-slider-wrap.is-off { opacity: .38; }
+.st-slider:disabled { cursor: default; }
+
+/* ↺ per-item reset to default */
+.st-reset {
+  flex: 0 0 auto;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(154,166,255,.14);
+  color: var(--lav-deep);
+  font-size: 16px; line-height: 1;
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: background .15s, transform .15s;
+}
+.st-reset:hover  { background: rgba(154,166,255,.28); transform: rotate(-30deg); }
+.st-reset:active { transform: rotate(-90deg) scale(.92); }
+
+/* 전체 기본값으로 초기화 */
+.st-reset-all {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--lav-deep);
+  background: rgba(154,166,255,.14);
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.st-reset-all:hover { background: rgba(154,166,255,.28); }
+
 /* ── Close button row ── */
 .st-panel__close-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
 .st-close-btn {
@@ -1388,7 +1428,7 @@ body { display: flex; align-items: center; justify-content: center; }
 .sl-layer {
   position: absolute;
   inset: 0;
-  z-index: 95;
+  z-index: 220;   /* modal tier — above #title-layer(200) so 불러오기 opens from the title */
   pointer-events: none;
 }
 .sl-layer:not(.hidden) {
@@ -1885,3 +1925,38 @@ body { display: flex; align-items: center; justify-content: center; }
 }
 .bg-hint--hidden { display: none; }
 .hide-asset-hints .bg-hint { display: none; }
+
+/* ── (F) ‘클릭/터치하면 다음’ 깜빡임 큐 ──────────────────────────────── */
+#advance-cue {
+  position: absolute;
+  right: 22px;
+  bottom: calc(26% + 16px);
+  z-index: 65;                 /* 위: #choices(60) / 아래: #overlay(70) */
+  pointer-events: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(108,124,240,.16);
+  color: var(--lav-deep, #a99cf2);
+  font-family: var(--font-display, sans-serif);
+  font-size: 17px; line-height: 1;
+  box-shadow: 0 4px 14px -6px rgba(160,140,220,.5);
+  animation: cue-pulse 1.05s ease-in-out infinite;
+}
+@keyframes cue-pulse {
+  0%, 100% { opacity: .5; transform: translateY(0); }
+  50%      { opacity: 1;  transform: translateY(3px); }
+}
+@media (prefers-reduced-motion: reduce) { #advance-cue { animation: none; opacity: .8; } }
+
+/* ── (D) 모바일(세로): 인게임 컨트롤이 채팅/대사를 가리지 않게 ─────────────── */
+@media (orientation: portrait) {
+  .settings-btn, .phone-btn { top: 70px; }          /* 채팅 상단바(64px) 아래로 */
+  #sysmenu-bar {                                     /* 가운데 정렬 + 축소 */
+    left: 50%; right: auto; transform: translateX(-50%);
+    max-width: calc(100% - 16px); justify-content: center; flex-wrap: wrap;
+  }
+  .sm-btn { min-width: 28px; height: 27px; font-size: 12px; }
+  /* 채팅이 열렸을 땐 바를 맨 아래로 도크 + 로그 하단 여백(:has 미지원 구형이면 무시되어도 안전) */
+  #game:has(#chat:not(.hidden)) #sysmenu-bar { bottom: 8px; }
+  #chat .log { padding-bottom: 58px; }
+}
