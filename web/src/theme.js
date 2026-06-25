@@ -17,6 +17,30 @@ export const ENDING_LIST = [
   ["run",       "다시 혼자"],
 ];
 export const CHAT_AVATARS = { '도윤': '#2fb574', '서아': '#e8553d', '지우': '#5ba3d0', '민결': '#b06cc0' };
+
+// ── d.3 Map + Station constants (verbatim from screens_map.rpy) ──────────────
+export const MAP = {
+  bg:        '#f3f1ea',  // 맵 배경 (종이 느낌)
+  line:      '#2fb574',  // 2호선 라인
+  node_open: '#2fb574',  // 갈 수 있는 역
+  node_lock: '#c2c2c2',  // 잠긴 역
+  node_here: '#e8553d',  // 현재 위치
+  name_txt:  '#2b2b2b',
+  title_txt: '#2fb574',
+};
+
+// x, y are screen-ratio 0.0–1.0; array order matches screens_map.rpy
+export const STATIONS = [
+  { key: 'hongdae',  name: '홍대입구', x: 0.30, y: 0.16 },
+  { key: 'hapjeong', name: '합정',     x: 0.50, y: 0.12 },
+  { key: 'seongsu',  name: '성수',     x: 0.70, y: 0.16 },
+  { key: 'konkuk',   name: '건대입구', x: 0.84, y: 0.42 },
+  { key: 'jamsil',   name: '잠실',     x: 0.78, y: 0.72 },
+  { key: 'gangnam',  name: '강남',     x: 0.50, y: 0.86 },
+  { key: 'mullae',   name: '문래',     x: 0.22, y: 0.72 },
+  { key: 'sinchon',  name: '신촌',     x: 0.16, y: 0.42 },
+];
+
 export const MASIL = {
   bg: '#e8ebf2', topbar: '#2f3447', topbar_txt: '#ffffff', topbar_sub: '#b8c0d0', online: '#46d18a',
   recv_bubble: '#ffffff', recv_txt: '#1c1f2a', send_bubble: '#6c7cf0', send_txt: '#ffffff',
