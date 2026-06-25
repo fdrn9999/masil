@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Visual Grounding Harness</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: #0a0c14; padding: 16px; }
+    .harness { display: flex; flex-wrap: wrap; }
+    .frame-wrap { display: inline-block; vertical-align: top; margin: 8px; }
+    .frame-label { color: #8a90a3; font-size: 13px; font-family: system-ui, sans-serif;
+      margin-bottom: 4px; padding-left: 2px; }
+    .frame { position: relative; width: 380px; height: 660px; overflow: hidden;
+      border: 1px solid #444; display: inline-block; vertical-align: top; background: #15171f; }
+    /* ensure absolute children (choices/overlay/toast) stay inside the frame */
+    .frame #choices, .frame #overlay { position: absolute; }
+    .frame #toast { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: max-content; }
+  </style>
+</head>
+<body>
+<div class="harness" id="harness"></div>
+
+<script type="module">
+import { MASIL, CHAT_AVATARS } from './src/theme.js';
+import { makeStage }   from './src/ui/stage.js';
+import { makeChat }    from './src/ui/chat.js';
+import { makeMenu }    from './src/ui/menu.js';
+import { makeOverlay } from './src/ui/overlay.js';
+
+// ── helpers ────────────────────────────────────────────────────────────────
+
+function makeFrame(harness, label, innerHTML) {
+  const wrap = document.createElement('div');
+  wrap.className = 'frame-wrap';
+  const lbl = document.createElement('div');
+  lbl.className = 'frame-label';
+  lbl.textContent = label;
+  const frame = document.createElement('div');
+  frame.className = 'frame';
+  frame.innerHTML = innerHTML;
+  wrap.appendChild(lbl);
+  wrap.appendChild(frame);
+  harness.appendChild(wrap);
+  return frame;
+}
+
+const harness = document.getElementById('harness');
+
+// ── 1. Stage ───────────────────────────────────────────────────────────────
+(async () => {
+  const frame = makeFrame(harness, '① Stage (scene + say)', `
+    <div id="stage"></div>
+    <div id="textbox"><div id="name"></div><div id="line"></div></div>
+  `);
+
+  let backgrounds = { room: '#1a2a3a' };
+  try {
+    const ep1 = await fetch('./data/ep1.json').then(r => r.json());
+    if (ep1.backgrounds) backgrounds = ep1.backgrounds;
+  } catch (_) {}
+
+  const st = makeStage(frame, backgrounds);
+  st.scene({ bg: 'room' });
+  // don't await — let the Promise pend; we just want the rendered state
+  st.say({
+    who: 'd',
+    name: '도윤',
+    color: '#2fb574',
+    text: '형 이거 {i}진짜{/i} 잘 만들었다?{p}한 줄 더.',
+  });
+})();
+
+// ── 2. Chat ────────────────────────────────────────────────────────────────
+(async () => {
+  const frame = makeFrame(harness, '② Chat (recv + send + typing dots)', `
+    <div id="chat" class="hidden"></div>
+  `);
+
+  const c = makeChat(frame, { MASIL, CHAT_AVATARS, AVATAR_FILES: {} });
+  c.open({ room: '심야 게임 같이할 사람 모여라' });
+  await c.recv({ name: '도윤', text: '어 새로 오셨네 ㅋㅋ 환영합니다' });
+  await c.send({ text: '형인지 어떻게 알았냐 ㅋㅋ' });
+  // NOT awaited — leaves typing-dots bubble visible in the screenshot
+  c.recv({ name: '서아', text: '...' });
+})();
+
+// ── 3. Menu ────────────────────────────────────────────────────────────────
+(() => {
+  const frame = makeFrame(harness, '③ Menu (choices)', `
+    <div id="stage"></div>
+    <div id="choices" class="hidden"></div>
+  `);
+
+  // don't await the returned Promise — just render
+  makeMenu(frame).menu({
+    prompt: '어떻게 받을까?',
+    choices: ['텐션 맞춰 받아치기', '솔직하고 담백하게'],
+  });
+})();
+
+// ── 4. Consult modal ───────────────────────────────────────────────────────
+(() => {
+  const frame = makeFrame(harness, '④ Consult modal', `
+    <div id="stage"></div>
+    <div id="overlay" class="hidden"></div>
+    <div id="toast"></div>
+  `);
+
+  makeOverlay(frame).consult({
+    who: 'seoa',
+    line: '형… 서아한테 잘 보이기만 하는 거 아니야?',
+    hint: '[힌트] 진솔한 속얘길 꺼내봐.',
+  });
+})();
+
+// ── 5. Input modal ─────────────────────────────────────────────────────────
+(() => {
+  const frame = makeFrame(harness, '⑤ Input modal (nickname)', `
+    <div id="stage"></div>
+    <div id="choices" class="hidden"></div>
+    <div id="overlay" class="hidden"></div>
+  `);
+
+  makeMenu(frame).input({ prompt: '쓸 닉네임을 정하자.', def: '진호', max: 12 });
+})();
+
+// ── 6. Toast ───────────────────────────────────────────────────────────────
+(() => {
+  const frame = makeFrame(harness, '⑥ Toast (item + doyun)', `
+    <div id="stage"></div>
+    <div id="overlay" class="hidden"></div>
+    <div id="toast"></div>
+  `);
+
+  const o = makeOverlay(frame);
+  o.toast({ kind: 'item',   text: '아이템 획득: 벚꽃 엽서' });
+  o.toast({ kind: 'doyun',  text: '형 데이트 잘 돼가? ㅋㅋ' });
+})();
+</script>
+</body>
+</html>
