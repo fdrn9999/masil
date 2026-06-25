@@ -1,4 +1,4 @@
-export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio = null }) {
+export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio = null, playback = null }) {
   const wrap = root.querySelector('#chat');
   let log, minutes = 0;
 
@@ -31,6 +31,9 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
     },
     close() { wrap.classList.add('hidden'); },
     recv({ name, text, avatar }) {
+      // Record history
+      if (playback) playback.pushHistory({ who: null, name, text });
+
       return new Promise(resolve => {
         const row = document.createElement('div'); row.className = 'bubble-row left';
         row.appendChild(avatarEl(name, avatar));
@@ -38,16 +41,20 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
         col.innerHTML = `<div class="sender">${escapeHtml(name || '')}</div>
           <div class="bubble typing"><span></span><span></span><span></span></div>`;
         row.appendChild(col); log.appendChild(row); scrollBottom();
+        const delay = (playback && playback.isSkip()) ? 60 : 800;
         setTimeout(() => {
           col.innerHTML = `<div class="sender">${escapeHtml(name || '')}</div>
             <div class="bubble">${escapeHtml(text)}</div><div class="meta">${fmtTime()}</div>`;
           scrollBottom();
           if (audio) { audio.playSfx('se_msg_recv'); audio.vibrate(10); }  // mobile messenger feel
           resolve();
-        }, 800);
+        }, delay);
       });
     },
     send({ text }) {
+      // Record history for outgoing messages too
+      if (playback) playback.pushHistory({ who: 'mc', name: null, text });
+
       const row = document.createElement('div'); row.className = 'bubble-row right';
       row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>
         <div class="meta"><span class="read">읽음</span><br>${fmtTime()}</div>`;
