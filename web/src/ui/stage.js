@@ -6,13 +6,50 @@ export function makeStage(root, backgrounds, playback = null) {
   const nameEl = root.querySelector('#name');
   const lineEl = root.querySelector('#line');
 
-  // Asset-hint chip — shows the expected background image filename + 설명 so you
-  // can tell which image each scene needs while playing. If the real image
-  // (images/bg/bg_<key>.png) exists it loads; otherwise the solid placeholder
+  // Asset-hint chip — shows the expected background image PATH + 설명 so you
+  // can tell which image each scene needs while playing. Backgrounds are split
+  // PC vs mobile: images/bg/pc/bg_<key>.png (16:9) and images/bg/mobile/bg_<key>.png (9:16).
+  // If the device-appropriate image exists it loads; else the solid placeholder
   // stays. Toggle off via 설정 → 에셋 힌트 (adds .hide-asset-hints on #game).
   const hintEl = document.createElement('div');
   hintEl.className = 'bg-hint bg-hint--hidden';
   stage.appendChild(hintEl);
+
+  // device dir: 세로(모바일)=mobile, 가로(PC)=pc
+  function deviceDir() {
+    return (typeof window !== 'undefined' && window.matchMedia
+      && window.matchMedia('(orientation: portrait)').matches) ? 'mobile' : 'pc';
+  }
+
+  let _curBg = null;
+  let _curDir = null;
+
+  function applyBg(bg) {
+    if (backgrounds[bg]) stage.style.backgroundColor = backgrounds[bg];
+    stage.style.backgroundImage = 'none';
+    const info = BG_INFO[bg];
+    const real = !info || info.real !== false;   // black/white flashes → no asset
+    if (real && /^\w+$/.test(bg)) {
+      const dir = deviceDir();
+      _curDir = dir;
+      const path = 'images/bg/' + dir + '/bg_' + bg + '.png';
+      const img = new Image();
+      img.onload = () => { stage.style.backgroundImage = `url("${path}")`; };
+      img.onerror = () => {};                     // keep solid placeholder
+      img.src = path;
+      hintEl.textContent = path + ' · ' + (info ? info.desc : bg);
+      hintEl.classList.remove('bg-hint--hidden');
+    } else {
+      hintEl.classList.add('bg-hint--hidden');    // 연출(암전/플래시)
+    }
+  }
+
+  // PC↔모바일 회전 시 현재 배경을 해당 기기용 이미지로 다시 로드
+  if (typeof window !== 'undefined') {
+    const reapply = () => { if (_curBg && deviceDir() !== _curDir) applyBg(_curBg); };
+    window.addEventListener('orientationchange', reapply);
+    window.addEventListener('resize', reapply);
+  }
 
   function escapeHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -43,22 +80,8 @@ export function makeStage(root, backgrounds, playback = null) {
   return {
     scene({ bg }) {
       if (!bg) return;
-      if (backgrounds[bg]) stage.style.backgroundColor = backgrounds[bg];
-      stage.style.backgroundImage = 'none';   // reset; restored on image load
-      const info = BG_INFO[bg];
-      const real = !info || info.real !== false;   // black/white flashes → no asset
-      if (real && /^\w+$/.test(bg)) {
-        const file = 'bg_' + bg;
-        const path = 'images/bg/' + file + '.png';
-        const img = new Image();
-        img.onload = () => { stage.style.backgroundImage = `url("${path}")`; };
-        img.onerror = () => {};                 // keep solid placeholder
-        img.src = path;
-        hintEl.textContent = file + '.png · ' + (info ? info.desc : bg);
-        hintEl.classList.remove('bg-hint--hidden');
-      } else {
-        hintEl.classList.add('bg-hint--hidden'); // 연출(암전/플래시) → 힌트 숨김
-      }
+      _curBg = bg;
+      applyBg(bg);
     },
     say(a) {
       // Record history before showing
