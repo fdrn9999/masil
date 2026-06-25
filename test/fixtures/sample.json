@@ -1,0 +1,20 @@
+{
+  "labels": { "start": 0, "branch_a": 7 },
+  "nodes": [
+    { "op": "label", "name": "start" },
+    { "op": "say", "who": "n", "text": "안녕 [mc_name]." },
+    { "op": "set", "expr": "S.add_like(\"seoa\", 10)" },
+    { "op": "menu", "prompt": "고를래?", "choices": [
+      { "text": "A", "body": [ { "op": "jump", "label": "branch_a" } ] },
+      { "text": "B", "body": [ { "op": "say", "who": "mc", "text": "B 골랐다" } ] }
+    ] },
+    { "op": "if", "cond": "V.like[\"seoa\"] >= 5",
+      "then": [ { "op": "say", "who": "n", "text": "호감 높음" } ],
+      "else": [ { "op": "say", "who": "n", "text": "낮음" } ] },
+    { "op": "return" },
+    { "op": "say", "who": "n", "text": "닿으면 안 됨" },
+    { "op": "label", "name": "branch_a" },
+    { "op": "say", "who": "n", "text": "A 분기" },
+    { "op": "return" }
+  ]
+}
