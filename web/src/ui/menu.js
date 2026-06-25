@@ -1,4 +1,4 @@
-export function makeMenu(root) {
+export function makeMenu(root, { audio = null } = {}) {
   const choicesEl = root.querySelector('#choices');
   const overlayEl = root.querySelector('#overlay');
   return {
@@ -12,6 +12,7 @@ export function makeMenu(root) {
           const b = document.createElement('button');
           b.textContent = text;
           b.onclick = () => {
+            if (audio) audio.playSfx('se_click');
             choicesEl.classList.add('hidden');
             choicesEl.innerHTML = '';
             resolve(i);

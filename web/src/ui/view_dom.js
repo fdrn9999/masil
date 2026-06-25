@@ -9,6 +9,9 @@ import { makeMenu } from './menu.js';
 import { makeOverlay } from './overlay.js';
 import { makeMap }     from './map.js';
 import { makePhone }   from './phone.js';
+import { makeSettings }   from '../settings.js';
+import { makeAudio }      from '../audio.js';
+import { makeSettingsUI } from './settings_ui.js';
 
 const AVATAR_FILES = {
   '도윤': 'images/avatar/avatar_doyun.png',
@@ -42,18 +45,13 @@ const SUPPLEMENT_DEFAULTS = {
   promise_spring:         false,
 };
 
-// Safe audio: try/catch so missing assets never throw
-function safePlay(file, loop) {
-  if (!file) return;
-  try {
-    const a = new Audio(file);
-    a.loop = !!loop;
-    a.play().catch(() => {});
-  } catch (_e) {}
-}
-
 async function boot() {
   const root = document.getElementById('game');
+
+  // Settings (music/sfx/brightness/vibration) + audio/haptics manager.
+  // makeSettings loads saved prefs and applies brightness immediately.
+  const settings = makeSettings();
+  const audio = makeAudio(settings);
 
   // Load data — story.json contains all episodes (ep1→epilogue) in one combined file
   const [script, characters] = await Promise.all([
@@ -73,14 +71,19 @@ async function boot() {
 
   // UI modules
   const overlay = makeOverlay(root);
-  const map     = makeMap(root, { sys: null, state });   // sys not needed for map
-  const sys = makeSystems(state, { onNotify: n => overlay.toast(n) });
+  const map     = makeMap(root, { sys: null, state, audio });   // sys not needed for map
+  const sys = makeSystems(state, { onNotify: n => {
+    overlay.toast(n);
+    if (n && n.kind === 'item') { audio.playSfx('se_item'); audio.vibrate(25); }
+  } });
   // Phone: non-blocking meta-screens (own #phone-layer, z-index 90, never touches engine await)
   const phone = makePhone(root, { sys, state });
   phone.mountButton();
+  // Settings button (⚙️) — non-blocking, mounted left of the phone button
+  makeSettingsUI(root, { settings, audio }).mountButton();
   const stage = makeStage(root, script.backgrounds || {});
-  const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES });
-  const menu = makeMenu(root);
+  const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES, audio });
+  const menu = makeMenu(root, { audio });
 
   let isChatOpen = false;
 
@@ -131,6 +134,7 @@ async function boot() {
         const title = sys.ending_title(kind);
         const type = sys.love_type();
         await overlay.callScreen({ name: a.name, title, type });
+        audio.vibrate([0, 40, 30, 40]);   // gentle ending haptic
       } else if (a.name === 'subway_map') {
         // Real 2호선 candy-loop map — replaces overlay interstitial stub
         await map.show();
@@ -142,16 +146,19 @@ async function boot() {
       overlay.toast(a);
     },
     async music(a) {
-      safePlay(a.file, true);
+      audio.playMusic(a.file);
     },
     async sound(a) {
-      safePlay(a.file, false);
+      audio.playSfxFile(a.file);
+      // dramatic late-night phone call → phone-ring haptic (gated by settings)
+      if (a.file && a.file.includes('se_phone')) audio.vibrate([0, 120, 80, 120]);
     },
     async amb(a) {
-      safePlay(a.file, true);
+      audio.playAmb(a.file);
     },
-    async stop() {
-      // no-op: Web Audio teardown deferred to a later milestone
+    async stop(a) {
+      if (a && a.channel === 'amb') audio.stopAmb();
+      else audio.stopMusic();
     },
   };
 
