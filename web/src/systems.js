@@ -1,4 +1,4 @@
-import { HEROINES, ITEMS } from './theme.js';
+import { HEROINES, ITEMS, ENDING_LIST } from './theme.js';
 
 const clamp = v => Math.max(0, Math.min(100, v));
 
@@ -79,6 +79,49 @@ export function makeSystems(state, { onNotify = () => {} } = {}) {
       if (c === 'friend' && (v.doyun_bond >= 25 || sys.has_item('doyun_keyring'))) return ['doyun', null];
       if (c === 'love' && v.sincere.mingyeol >= 40) return ['true', 'mingyeol'];
       return sys.decide_ending();
+    },
+
+    bitter_candidate() {
+      // Mirror epilogue lambda: max(HEROINES, key=lambda k: like[k]+sincere[k])
+      // On ties, first key in HEROINES wins (mirrors Python's max() first-wins behaviour).
+      const keys = Object.keys(HEROINES);
+      let best = keys[0];
+      for (let i = 1; i < keys.length; i++) {
+        const k = keys[i];
+        if ((v.like[k] || 0) + (v.sincere[k] || 0) > (v.like[best] || 0) + (v.sincere[best] || 0)) {
+          best = k;
+        }
+      }
+      return sys.hname(best);
+    },
+
+    record_ending(kind) {
+      if (state.persistent.endings_seen == null) state.persistent.endings_seen = [];
+      if (kind && !state.persistent.endings_seen.includes(kind)) {
+        state.persistent.endings_seen = state.persistent.endings_seen.concat([kind]);
+      }
+    },
+
+    ending_title(kind) {
+      const entry = ENDING_LIST.find(([k]) => k === kind);
+      return entry ? entry[1] : kind;
+    },
+
+    love_type() {
+      const [kind, who] = sys.final_ending();
+      const table = {
+        'run':       ['도망러',         '끝내 또 도망친. 익숙한 거리에서 가장 외로운 사람.'],
+        'fishtank':  ['어장러',         '모두에게 잘했지만, 아무에게도 진짜를 주진 못한.'],
+        'doyun':     ['의리파',         '사랑보다 곁을 택한. 가장 단단한 걸 끝까지 지킨.'],
+        'reconcile': ['다 끌어안은 사람', '도망치지 않고, 누구도 놓지 않은 최난도 길을 걸은.'],
+        'good':      ['서툰 진심파',     '완벽하진 않아도, 이번엔 도망치지 않은.'],
+        'lonely':    ['못다 준 사람',    '진심은 늘 한 발 늦게 도착했다.'],
+      };
+      if (kind === 'true') {
+        if (who === 'jiu') return ['슬로우버너', '천천히 데워, 식지 않는 불을 가진 사람.'];
+        return ['진심파', '비싼 진심을, 끝내 한 사람에게 건넨.'];
+      }
+      return table[kind] || ['여행자', '이야기는 아직 끝나지 않았다.'];
     },
 
     apply_timing(who, mode) {

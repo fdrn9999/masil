@@ -53,3 +53,87 @@ test('apply_timing seoa now boosts like and returns line', () => {
   assert.equal(state.vars.like.seoa, 10);
   assert.match(line, /답장 빠르네/);
 });
+
+test('bitter_candidate returns hname of heroine with max like+sincere', () => {
+  const { sys, state } = mkSys();
+  state.vars.like = { seoa: 30, jiu: 60, mingyeol: 20 };
+  state.vars.sincere = { seoa: 10, jiu: 5, mingyeol: 50 };
+  // jiu: 65, mingyeol: 70 → mingyeol wins
+  assert.equal(sys.bitter_candidate(), '민결');
+});
+
+test('bitter_candidate returns first on tie (mirrors Python max first-wins)', () => {
+  const { sys, state } = mkSys();
+  state.vars.like = { seoa: 50, jiu: 50, mingyeol: 0 };
+  state.vars.sincere = { seoa: 0, jiu: 0, mingyeol: 0 };
+  // seoa and jiu tied at 50; seoa comes first in HEROINES → seoa wins
+  assert.equal(sys.bitter_candidate(), '서아');
+});
+
+// ── Task 4: record_ending / ending_title / love_type ─────────────────────────
+
+test('record_ending deduplicates: calling twice yields one entry', () => {
+  const { sys, state } = mkSys();
+  sys.record_ending('doyun');
+  sys.record_ending('doyun');
+  assert.deepEqual(state.persistent.endings_seen, ['doyun']);
+});
+
+test('record_ending accumulates different kinds in order', () => {
+  const { sys, state } = mkSys();
+  sys.record_ending('run');
+  sys.record_ending('doyun');
+  sys.record_ending('good');
+  assert.deepEqual(state.persistent.endings_seen, ['run', 'doyun', 'good']);
+});
+
+test('record_ending initialises endings_seen if missing', () => {
+  const { sys, state } = mkSys();
+  // persistent starts empty — no endings_seen key
+  assert.equal(state.persistent.endings_seen, undefined);
+  sys.record_ending('lonely');
+  assert.deepEqual(state.persistent.endings_seen, ['lonely']);
+});
+
+test('ending_title("doyun") returns verbatim title', () => {
+  const { sys } = mkSys();
+  assert.equal(sys.ending_title('doyun'), '그날 그 손을 끝까지');
+});
+
+test('ending_title("run") returns verbatim title', () => {
+  const { sys } = mkSys();
+  assert.equal(sys.ending_title('run'), '다시 혼자');
+});
+
+test('ending_title unknown kind returns kind itself', () => {
+  const { sys } = mkSys();
+  assert.equal(sys.ending_title('no_such_ending'), 'no_such_ending');
+});
+
+test('love_type "run" => 도망러', () => {
+  const { sys, state } = mkSys();
+  state.vars.ep4_choice = 'run';
+  const [label, desc] = sys.love_type();
+  assert.equal(label, '도망러');
+  assert.match(desc, /익숙한 거리/);
+});
+
+test('love_type "true" + jiu => 슬로우버너', () => {
+  const { sys, state } = mkSys();
+  // final_ending returns ['true','jiu'] when love choice + sincere.mingyeol<40 but sincere.jiu>=70
+  state.vars.sincere = { seoa: 0, jiu: 70, mingyeol: 0 };
+  state.vars.like    = { seoa: 0, jiu: 60, mingyeol: 0 };
+  const [label, desc] = sys.love_type();
+  assert.equal(label, '슬로우버너');
+  assert.match(desc, /식지 않는 불/);
+});
+
+test('love_type "true" + non-jiu => 진심파', () => {
+  const { sys, state } = mkSys();
+  // decide_ending → ['true', 'seoa'] when seoa sincere>=70, like>=60
+  state.vars.sincere = { seoa: 75, jiu: 0, mingyeol: 0 };
+  state.vars.like    = { seoa: 65, jiu: 0, mingyeol: 0 };
+  const [label, desc] = sys.love_type();
+  assert.equal(label, '진심파');
+  assert.match(desc, /끝내 한 사람에게/);
+});

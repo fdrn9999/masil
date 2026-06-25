@@ -1,5 +1,5 @@
 import unittest
-from rpy2json import parse_lines, parse_declarations, convert, py_to_js
+from rpy2json import parse_lines, parse_declarations, convert, py_to_js, convert_files
 
 class TestDecls(unittest.TestCase):
     def test_parse_lines_strips_comments_blanks(self):
@@ -136,12 +136,14 @@ class TestSpecialCalls(unittest.TestCase):
         out = convert('label x:\n    call consult_doyun()\n')
         self.assertEqual(out["nodes"][1], {"op": "consult", "who": "seoa"})
 
-    def test_reply_prompt_dropped(self):
-        # call reply_prompt(...) → 다음 마일스톤으로 보류, dead {op:call} 미발생
+    def test_reply_prompt_no_dead_call(self):
+        # Task 3: call reply_prompt(...) → inline menu (not dead {op:call})
         out = convert('label x:\n    call reply_prompt("seoa")\n    "다음"\n')
         ops = [n.get("op") for n in out["nodes"]]
         self.assertNotIn("call", ops)
-        self.assertEqual(out["nodes"][1], {"op": "say", "who": "n", "text": "다음"})
+        # nodes[1] is the inline menu; nodes[2] is the say after it
+        self.assertEqual(out["nodes"][1]["op"], "menu")
+        self.assertEqual(out["nodes"][2], {"op": "say", "who": "n", "text": "다음"})
 
 
 class TestGaugeMirrorSkip(unittest.TestCase):
@@ -158,6 +160,119 @@ class TestGaugeMirrorSkip(unittest.TestCase):
         # set 노드(미러 셋업) 없음 — say(label/끝)만 남아야
         self.assertNotIn("set", ops)
         self.assertEqual(out["nodes"][1], {"op": "say", "who": "n", "text": "끝"})
+
+
+class TestGaugeMirrorGeneral(unittest.TestCase):
+    # Task 2: generalized gauge-mirror strip (CLAUDE.md #1)
+    def test_gauge_strip_general(self):
+        out = convert('label x:\n    $ jiu_like = like["jiu"]\n    n "(지우 — 호감 [jiu_like])"\n    "유지"\n')
+        texts=[n.get('text') for n in out['nodes'] if n['op']=='say']
+        self.assertNotIn('(지우 — 호감 [jiu_like])', texts); self.assertIn('유지', texts)
+        self.assertFalse(any(n['op']=='set' and 'jiu_like' in n.get('expr','') for n in out['nodes']))
+
+    def test_doyun_bond_display_stripped(self):
+        out = convert('label x:\n    n "(도윤 우정 [doyun_bond])"\n')
+        self.assertEqual([n for n in out['nodes'] if n['op']=='say'], [])
+
+    def test_non_gauge_descriptive_line_preserved(self):
+        """ep3 descriptive lines without gauge tokens must NOT be dropped."""
+        out = convert('label x:\n    n "(천천히 데워지는)"\n')
+        texts = [n.get('text') for n in out['nodes'] if n['op']=='say']
+        self.assertIn('(천천히 데워지는)', texts)
+
+
+class TestTupleUnpack(unittest.TestCase):
+    # Task 2: tuple-unpack assignment
+    def test_tuple_unpack(self):
+        out = convert('label x:\n    $ ekind, ewho = final_ending()\n')
+        self.assertEqual(out['nodes'][1], {'op':'set','expr':'[V.ekind, V.ewho] = S.final_ending()'})
+
+    def test_recv_with_comma_in_string_not_tuple(self):
+        """recv with comma in string arg must NOT trigger tuple-unpack."""
+        out = convert('label x:\n    $ recv("a, b", name="도윤")\n')
+        self.assertEqual(out['nodes'][1], {'op':'recv','name':'도윤','text':'a, b'})
+
+
+class TestRenpyCallScreen(unittest.TestCase):
+    # Task 2: renpy.call_screen("X") → {op:call_screen, name:"X"}
+    def test_renpy_call_screen_resultcard(self):
+        out = convert('label x:\n    $ renpy.call_screen("result_card")\n')
+        self.assertEqual(out['nodes'][1], {'op':'call_screen','name':'result_card'})
+
+
+class TestMulti(unittest.TestCase):
+    def test_concat_labels_offset(self):
+        import tempfile, os, io
+        a = 'label episode1_full:\n    "a"\n    jump episode2_full\n'
+        b = 'label episode2_full:\n    "b"\n    return\n'
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', encoding='utf-8', delete=False) as fa:
+            fa.write(a); pa = fa.name
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.rpy', encoding='utf-8', delete=False) as fb:
+            fb.write(b); pb = fb.name
+        try:
+            result = convert_files([pa, pb])
+            nodes = result['nodes']
+            labels = result['labels']
+            # labels['episode2_full'] must point to the flat index of that label node
+            idx = labels['episode2_full']
+            self.assertEqual(nodes[idx], {'op': 'label', 'name': 'episode2_full'})
+            # episode1_full should still be at index 0
+            self.assertEqual(labels['episode1_full'], 0)
+            self.assertEqual(nodes[labels['episode1_full']], {'op': 'label', 'name': 'episode1_full'})
+        finally:
+            os.unlink(pa)
+            os.unlink(pb)
+
+
+class TestReplyPromptInline(unittest.TestCase):
+    # Task 3: call reply_prompt("X") → inline menu node
+    def test_reply_prompt_inline(self):
+        out = convert('label x:\n    call reply_prompt("jiu")\n')
+        m = out['nodes'][1]
+        self.assertEqual(m['op'], 'menu')
+        self.assertEqual(len(m['choices']), 3)
+        self.assertIn('S.apply_timing("jiu", "now")', m['choices'][0]['body'][0]['expr'])
+        self.assertEqual(m['choices'][0]['body'][1], {'op': 'say', 'who': 'n', 'text': '[_r]'})
+
+    def test_reply_prompt_inline_choice_texts(self):
+        out = convert('label x:\n    call reply_prompt("seoa")\n')
+        m = out['nodes'][1]
+        texts = [ch['text'] for ch in m['choices']]
+        self.assertEqual(texts, ['바로 답한다', '조금 뜸 들였다 답한다', '지금은 못 본 척한다'])
+
+    def test_reply_prompt_inline_modes(self):
+        out = convert('label x:\n    call reply_prompt("mingyeol")\n')
+        m = out['nodes'][1]
+        modes = ['now', 'wait', 'ignore']
+        for i, mode in enumerate(modes):
+            self.assertIn(f'S.apply_timing("mingyeol", "{mode}")', m['choices'][i]['body'][0]['expr'])
+            self.assertEqual(m['choices'][i]['body'][1], {'op': 'say', 'who': 'n', 'text': '[_r]'})
+
+    def test_reply_prompt_has_prompt_text(self):
+        out = convert('label x:\n    call reply_prompt("jiu")\n')
+        m = out['nodes'][1]
+        self.assertEqual(m.get('prompt'), '답장, 어떻게 할까?')
+
+
+class TestPythonBlock(unittest.TestCase):
+    # Task 3: python: multiline block handling
+    def test_python_block_bitter(self):
+        src = 'label epi_bitter:\n    python:\n        _cand = max(HEROINES, key=lambda k: like[k] + sincere[k])\n        who_n = hname(_cand)\n'
+        out = convert(src)
+        exprs = [n.get('expr') for n in out['nodes'] if n['op'] == 'set']
+        self.assertIn('V.who_n = S.bitter_candidate()', exprs)
+        self.assertEqual(out['review'], [])
+
+    def test_python_block_simple_assignment(self):
+        src = 'label x:\n    python:\n        promise_spring = True\n'
+        out = convert(src)
+        exprs = [n.get('expr') for n in out['nodes'] if n['op'] == 'set']
+        self.assertIn('V.promise_spring = true', exprs)
+
+    def test_python_block_untranslatable_goes_to_review(self):
+        src = 'label x:\n    python:\n        some_complex_lambda = list(filter(lambda x: x > 0, data))\n'
+        out = convert(src)
+        self.assertTrue(len(out['review']) > 0)
 
 
 if __name__ == '__main__':

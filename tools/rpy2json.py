@@ -63,8 +63,7 @@ _SCENE_RE = re.compile(r'^scene\s+(?:bg\s+)?(\w+)(?:\s+with\s+(.+?))?\s*$')
 _CALL_SCREEN_RE = re.compile(r'^call\s+screen\s+(\w+)')
 # call consult_doyun("seoa") / call consult_doyun()  → consult op (who 기본 "seoa")
 _CONSULT_RE = re.compile(r'^call\s+consult_doyun\s*\(\s*(?:"((?:[^"\\]|\\.)*)")?\s*\)\s*$')
-# call reply_prompt(...) → 다음 마일스톤으로 보류 (drop)
-_REPLY_PROMPT_RE = re.compile(r'^call\s+reply_prompt\s*\(')
+_REPLY_PROMPT_RE = re.compile(r'^call\s+reply_prompt\s*\(\s*"((?:[^"\\]|\\.)*)"\s*\)\s*$')
 _CALL_RE = re.compile(r'^call\s+(\w+)\s*(?:\((.*)\))?\s*$')
 _JUMP_RE = re.compile(r'^jump\s+(\w+)\s*$')
 _MENU_CHOICE_RE = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*(?:if\s+(.+?))?\s*:\s*$')
@@ -77,12 +76,19 @@ def _unquote(s):
 
 SYS_NAMES = {'add_like','add_sincere','add_bond','hname','chapter_start','get_item','has_item',
     'item_count','use_item','give_item','was_given','unlock_station','doyun_ping','doyun_line',
-    'decide_ending','final_ending','apply_timing'}
+    'decide_ending','final_ending','apply_timing','bitter_candidate',
+    'record_ending','ending_title','love_type'}
 
 # ep1에 등장하는 default/런타임 변수 (기본 var_names). convert()에서 declarations로 보강.
 # (seoa_like/seoa_sinc 는 게이지 숫자 미러 표시용 → CLAUDE.md #1 따라 변환 단계에서 드롭됨)
 BASE_VARS = {'like','sincere','doyun_bond','inventory','item_flags','doyun_used_chapter','show_gauges',
-    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice'}
+    'mc_name','seoa_result','date_loc','seoa_card_given','promise_spring','ep4_choice',
+    # 스크립트 내 임시(튜플언팩) 변수: V. 접두사 없으면 엔진 evaluator에서 undefined
+    'ekind','ewho','k','who','who_n','_r',
+    # ep2-4 추가 default 변수
+    'doyun_secret_seen','meet_loc','date3_loc','mingyeol_truth_known','heard_side',
+    'promise_spring','ep4_choice',
+}
 
 def py_to_js(expr):
     e = re.sub(r'\bnot\s+', '! ', expr)
@@ -153,13 +159,33 @@ def _convert_dollar(code, review, var_names=None, sys_names=None):
     if re.match(r'^mc_name\s*=\s*tmp', code): return None
     # mc = Character(...) 재정의 → 무시 (이름은 mc_name 보간)
     if re.match(r'^\w+\s*=\s*Character\(', code): return None
-    if code.startswith('renpy.call_screen'): review.append('$ ' + code); return None
+    # renpy.call_screen("X") (결과 미사용 형태) → call_screen op (Task 2)
+    if code.startswith('renpy.call_screen'):
+        m_cs = re.match(r'^renpy\.call_screen\(\s*"([^"]+)"\s*\)', code)
+        if m_cs:
+            return {"op": "call_screen", "name": m_cs.group(1)}
+        review.append('$ ' + code); return None
     if code.startswith('persistent.'):
         # play_count owned by boot (view_dom) — strip script-side increment to avoid double-count (final review I-2)
         if re.match(r'^persistent\.play_count\s*=', code):
             return None
         # other persistent.x = ... → set with P.
         return {"op": "set", "expr": _persistent_expr(code, var_names, sys_names)}
+    # 튜플 언팩 대입: $ a, b = expr  (Task 2)
+    # LHS에 콤마가 있고 = 이후에 나타나는 콤마는 RHS 함수 인자이므로 구분 필요.
+    # 전략: '=' 기준으로 첫 '=' 위치를 찾은 뒤 LHS 부분에만 콤마 검사.
+    # recv/send 등 특수 핸들러를 이미 통과했으므로 여기 도달한 코드만 대상.
+    _eq_idx = code.find('=')
+    if _eq_idx > 0 and code[_eq_idx - 1] not in ('!', '<', '>', '=') and (
+            _eq_idx + 1 >= len(code) or code[_eq_idx + 1] != '='):
+        _lhs = code[:_eq_idx].strip()
+        _rhs = code[_eq_idx + 1:].strip()
+        if ',' in _lhs and re.match(r'^[A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)+$', _lhs):
+            # LHS가 순수 식별자 콤마-목록 → 튜플 언팩
+            _names = [n.strip() for n in _lhs.split(',')]
+            _lhs_js = '[' + ', '.join('V.' + n for n in _names) + ']'
+            _rhs_js = scope_prefix(py_to_js(_rhs), var_names, sys_names)
+            return {"op": "set", "expr": _lhs_js + ' = ' + _rhs_js}
     # 일반 헬퍼 호출/대입 → set
     return {"op": "set", "expr": scope_prefix(py_to_js(code), var_names, sys_names)}
 
@@ -196,21 +222,44 @@ def _translate_conds(nodes, var_names, sys_names):
 
 # CLAUDE.md #1: gauge numbers must never be shown — strip gauge-mirror display (user-approved)
 # 게이지 숫자를 미러링해 플레이어에게 보여주는 표시 줄/셋업을 결정론적으로 드롭한다.
-# 소스(script_ep1.rpy)는 건드리지 않고 생성물(web data)에서만 숨긴다 → 재생성해도 항상 숨겨짐.
-GAUGE_MIRROR_VARS = ('seoa_like', 'seoa_sinc')
+# 소스(.rpy)는 건드리지 않고 생성물(web data)에서만 숨긴다 → 재생성해도 항상 숨겨짐.
+# 일반화(Task 2): ep1 seoa 전용에서 모든 캐릭터+doyun_bond 로 확장.
+#   say 텍스트에 [<name>_like], [<name>_sinc], [doyun_bond] 보간이 있으면 drop.
+#   $ <name>_like = like[...] / $ <name>_sinc = sincere[...] 대입도 drop.
+_GAUGE_MIRROR_SAY_RE = re.compile(r'\[(?:\w+_(?:like|sinc)|doyun_bond)\]')
+_GAUGE_MIRROR_SET_RE = re.compile(r'^\$\s*\w+_(?:like|sinc)\s*=')
 
 def _is_gauge_mirror_line(c):
     """게이지 숫자 미러 표시/셋업 줄이면 True (드롭 대상)."""
-    # 1) 표시용 say 줄: 텍스트에 [seoa_like]/[seoa_sinc] 보간이 들어간 줄
+    # 1) 표시용 say 줄: 텍스트에 [<name>_like]/[<name>_sinc]/[doyun_bond] 보간이 있는 줄
     if c.startswith('"') or _SAY_CHAR_RE.match(c):
-        if any(('[' + v + ']') in c for v in GAUGE_MIRROR_VARS):
+        if _GAUGE_MIRROR_SAY_RE.search(c):
             return True
-    # 2) 셋업 $ 줄: seoa_like / seoa_sinc 에 대입하는 줄
-    if c.startswith('$ '):
-        for v in GAUGE_MIRROR_VARS:
-            if re.match(r'^\$\s*' + re.escape(v) + r'\s*=', c):
-                return True
+    # 2) 셋업 $ 줄: <name>_like / <name>_sinc 에 대입하는 줄
+    if _GAUGE_MIRROR_SET_RE.match(c):
+        return True
     return False
+
+def _build_reply_prompt_menu(who):
+    """call reply_prompt("who") → inline menu (systems_reply.rpy label reply_prompt verbatim).
+    choices: 바로 답한다→now, 조금 뜸 들였다 답한다→wait, 지금은 못 본 척한다→ignore.
+    Each body: [{set V._r = S.apply_timing("who","mode")}, {say n "[_r]"}]
+    """
+    modes = [
+        ("바로 답한다",           "now"),
+        ("조금 뜸 들였다 답한다", "wait"),
+        ("지금은 못 본 척한다",   "ignore"),
+    ]
+    choices = []
+    for text, mode in modes:
+        expr = f'V._r = S.apply_timing("{who}", "{mode}")'
+        # 각 choice마다 say 노드를 새로 생성 (공유 가변 참조 방지)
+        choices.append({
+            "text": text,
+            "body": [{"op": "set", "expr": expr}, {"op": "say", "who": "n", "text": "[_r]"}],
+        })
+    return {"op": "menu", "prompt": "답장, 어떻게 할까?", "choices": choices}
+
 
 def classify(c, review, var_names=None, sys_names=None):
     if var_names is None: var_names = BASE_VARS
@@ -240,10 +289,11 @@ def classify(c, review, var_names=None, sys_names=None):
     # 도윤 상담: call consult_doyun("who") → 엔진 내장 consult op (필수 기능)
     m = _CONSULT_RE.match(c)
     if m: return {"op": "consult", "who": m.group(1) or "seoa"}
-    # 답장 타이밍: reply_prompt 는 systems_reply.rpy(파라미터 라벨, 이 슬라이스 밖) →
-    # reply timing (reply_prompt) deferred to next milestone — see web/README
-    if _REPLY_PROMPT_RE.match(c):
-        return None
+    # 답장 타이밍: call reply_prompt("X") → 인라인 메뉴 노드 (systems_reply.rpy verbatim)
+    m = _REPLY_PROMPT_RE.match(c)
+    if m:
+        who = m.group(1)
+        return _build_reply_prompt_menu(who)
     m = _CALL_RE.match(c)
     if m:
         node = {"op": "call", "label": m.group(1)}
@@ -273,9 +323,66 @@ def parse_block(lines, i, base_indent, review, var_names=None, sys_names=None):
     block = []
     while i < len(lines) and lines[i].indent > base_indent:
         node, i = _line_to_node(lines, i, review, var_names, sys_names)
-        if node is not None:
+        if isinstance(node, list):
+            block.extend(node)
+        elif node is not None:
             block.append(node)
     return block, i
+
+# 에필로그 bitter 패턴: _cand = max(HEROINES, key=lambda ...) 뒤에 who_n = hname(_cand)
+_BITTER_MAX_RE = re.compile(r'^_cand\s*=\s*max\s*\(HEROINES\s*,\s*key\s*=\s*lambda')
+_BITTER_HNAME_RE = re.compile(r'^who_n\s*=\s*hname\s*\(_cand\)')
+
+def _parse_python_block(lines, i, review, var_names=None, sys_names=None):
+    """python: 멀티라인 블록을 파싱해 set 노드 목록을 반환.
+    - bitter 패턴(_cand=max+who_n=hname) → single {set V.who_n = S.bitter_candidate()}
+    - 일반 줄 → _convert_dollar 경유 set 노드
+    - 번역 불가 줄(lambda 등) → REVIEW
+    """
+    base_indent = lines[i].indent
+    i += 1  # 'python:' 줄 건너뜀
+    # 블록 줄 수집 (base_indent보다 더 깊은 연속 줄)
+    block_lines = []
+    while i < len(lines) and lines[i].indent > base_indent:
+        block_lines.append(lines[i].content)
+        i += 1
+
+    # bitter 패턴 감지: 연속 두 줄이 _cand = max(...) + who_n = hname(_cand)
+    bitter_nodes = _try_bitter_collapse(block_lines)
+    if bitter_nodes is not None:
+        return bitter_nodes, i
+
+    # 일반 처리: 각 줄을 _convert_dollar로 변환
+    result_nodes = []
+    for code in block_lines:
+        # 번역 불가 줄 감지: lambda 키워드 포함 또는 max(... key=lambda ...) 패턴
+        if 'lambda' in code or re.search(r'max\s*\(.*key\s*=', code):
+            review.append('python: ' + code)
+            continue
+        node = _convert_dollar(code, review, var_names, sys_names)
+        if node is not None:
+            result_nodes.append(node)
+
+    # 복수 노드를 list로 반환. _consume/parse_block에서 isinstance 체크로 extend.
+    return result_nodes, i  # list of nodes (may be empty)
+
+
+def _try_bitter_collapse(block_lines):
+    """에필로그 bitter 패턴을 감지해 단일 set 노드 목록 반환. 감지 실패 시 None."""
+    # 2줄 패턴: _cand = max(HEROINES, key=lambda ...) 다음 who_n = hname(_cand)
+    # (블록에 다른 줄이 없어야 함 — 있으면 None을 반환해 일반 경로로)
+    if len(block_lines) < 2:
+        return None
+    # 두 줄 안에 bitter 패턴이 있는지 연속으로 스캔
+    for idx in range(len(block_lines) - 1):
+        if _BITTER_MAX_RE.match(block_lines[idx]) and _BITTER_HNAME_RE.match(block_lines[idx + 1]):
+            # bitter 패턴 발견 — 이 두 줄 외의 줄이 있으면 일반 경로로 위임
+            remaining = block_lines[:idx] + block_lines[idx + 2:]
+            if remaining:
+                return None  # 복잡한 케이스 → 일반 경로
+            return [{"op": "set", "expr": "V.who_n = S.bitter_candidate()"}]
+    return None
+
 
 def _line_to_node(lines, i, review, var_names=None, sys_names=None):
     l = lines[i]
@@ -286,6 +393,9 @@ def _line_to_node(lines, i, review, var_names=None, sys_names=None):
         return _parse_menu(lines, i, review, var_names, sys_names)
     if c.startswith('if ') and c.endswith(':'):
         return _parse_if(lines, i, review, var_names, sys_names)
+    # python: 멀티라인 블록 (init python이 아닌 경우만)
+    if c == 'python:':
+        return _parse_python_block(lines, i, review, var_names, sys_names)
     node = classify(c, review, var_names, sys_names)
     return node, i + 1
 
@@ -339,9 +449,21 @@ def _parse_if_from_elif(lines, i, review, var_names=None, sys_names=None):
 
 def _consume(lines, i, nodes, review, var_names=None, sys_names=None):
     node, ni = _line_to_node(lines, i, review, var_names, sys_names)
-    if node is not None:
+    if isinstance(node, list):
+        # python: block returns a list of nodes → extend
+        nodes.extend(node)
+    elif node is not None:
         nodes.append(node)
     return node, ni
+
+def _nodes_from_lines(lines, var_names, sys_names):
+    """파일 한 개 분량의 lines -> (nodes, review). convert/convert_files 양쪽에서 공유."""
+    nodes, review = [], []
+    i = 0
+    while i < len(lines):
+        node, i = _consume(lines, i, nodes, review, var_names, sys_names)
+    return nodes, review
+
 
 def convert(text, var_names=None, sys_names=None):
     lines = parse_lines(text)
@@ -352,10 +474,7 @@ def convert(text, var_names=None, sys_names=None):
         effective_var_names = effective_var_names | set(var_names)
     effective_sys_names = SYS_NAMES if sys_names is None else SYS_NAMES | set(sys_names)
 
-    nodes, review = [], []
-    i = 0
-    while i < len(lines):
-        node, i = _consume(lines, i, nodes, review, effective_var_names, effective_sys_names)
+    nodes, review = _nodes_from_lines(lines, effective_var_names, effective_sys_names)
     # if/menu cond를 일괄 py→js + scope_prefix 변환
     _translate_conds(nodes, effective_var_names, effective_sys_names)
     labels = {}
@@ -365,15 +484,78 @@ def convert(text, var_names=None, sys_names=None):
     return {"nodes": nodes, "labels": labels, "review": review}
 
 
+def convert_files(paths, var_names=None, sys_names=None):
+    """여러 .rpy 파일을 순서대로 읽어 nodes/labels/review/defaults/backgrounds를 통합 반환.
+
+    - defaults/backgrounds: 모든 파일의 declarations를 union
+    - var_names: BASE_VARS + 모든 파일의 default 변수명 + 호출자 전달 var_names
+    - nodes: 파일 순서대로 flat concat
+    - labels: 합산된 nodes 위에서의 flat 인덱스 (cross-file jump 해소)
+    - review: 파일 순서대로 concat
+    """
+    import io as _io
+    # 1. 모든 파일을 읽고 declarations를 먼저 union → var_names 확정
+    all_texts = []
+    all_lines = []
+    merged_defaults = {}
+    merged_backgrounds = {}
+    for path in paths:
+        with _io.open(path, encoding='utf-8') as fh:
+            text = fh.read()
+        all_texts.append(text)
+        lines = parse_lines(text)
+        all_lines.append(lines)
+        decls = parse_declarations(lines)
+        merged_defaults.update(decls["defaults"])
+        merged_backgrounds.update(decls["backgrounds"])
+
+    effective_var_names = BASE_VARS | set(merged_defaults.keys())
+    if var_names is not None:
+        effective_var_names = effective_var_names | set(var_names)
+    effective_sys_names = SYS_NAMES if sys_names is None else SYS_NAMES | set(sys_names)
+
+    # 2. 각 파일의 노드를 순서대로 flat concat
+    combined_nodes = []
+    combined_review = []
+    for lines in all_lines:
+        file_nodes, file_review = _nodes_from_lines(lines, effective_var_names, effective_sys_names)
+        combined_nodes.extend(file_nodes)
+        combined_review.extend(file_review)
+
+    # 3. if/menu cond를 일괄 변환
+    _translate_conds(combined_nodes, effective_var_names, effective_sys_names)
+
+    # 4. labels = flat index over combined_nodes
+    labels = {}
+    for idx, n in enumerate(combined_nodes):
+        if n.get("op") == "label":
+            labels[n["name"]] = idx
+
+    return {
+        "nodes": combined_nodes,
+        "labels": labels,
+        "review": combined_review,
+        "defaults": merged_defaults,
+        "backgrounds": merged_backgrounds,
+    }
+
+
 def main():
     import sys, json, io
-    src, out = sys.argv[1], sys.argv[sys.argv.index('-o') + 1]
-    text = io.open(src, encoding='utf-8').read()
-    decls = parse_declarations(parse_lines(text))
-    var_names = set(BASE_VARS) | set(decls["defaults"].keys())
-    result = convert(text, var_names=var_names, sys_names=SYS_NAMES)
-    result["backgrounds"] = decls["backgrounds"]
-    result["defaults"] = decls["defaults"]
+    # argv 형식: rpy2json.py <src1> [<src2> ...] -o <out>
+    o_idx = sys.argv.index('-o')
+    srcs = sys.argv[1:o_idx]
+    out = sys.argv[o_idx + 1]
+    if len(srcs) == 1:
+        # 단일 파일: 기존 동작 유지
+        text = io.open(srcs[0], encoding='utf-8').read()
+        decls = parse_declarations(parse_lines(text))
+        var_names = set(BASE_VARS) | set(decls["defaults"].keys())
+        result = convert(text, var_names=var_names, sys_names=SYS_NAMES)
+        result["backgrounds"] = decls["backgrounds"]
+        result["defaults"] = decls["defaults"]
+    else:
+        result = convert_files(srcs)
     io.open(out, 'w', encoding='utf-8').write(json.dumps(result, ensure_ascii=False, indent=1))
     with io.open('convert_review.log', 'w', encoding='utf-8') as f:
         f.write('\n'.join(result["review"]))

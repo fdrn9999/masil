@@ -15,7 +15,9 @@ const AVATAR_FILES = {
   '민결': 'images/avatar/avatar_mingyeol.png',
 };
 
-// Supplement defaults not covered by script.defaults
+// Supplement defaults not covered by script.defaults.
+// story.defaults (from all episodes' `default` declarations) is loaded first,
+// so only structural defaults absent from the script need to be listed here.
 const SUPPLEMENT_DEFAULTS = {
   like:               { seoa: 0, jiu: 0, mingyeol: 0 },
   sincere:            { seoa: 0, jiu: 0, mingyeol: 0 },
@@ -26,6 +28,16 @@ const SUPPLEMENT_DEFAULTS = {
   show_gauges:        false,
   mc_name:            '진호',
   ep4_choice:         '',
+  // ep2-4 vars (also in story.defaults, but listed here as safety net)
+  doyun_secret_seen:      false,
+  meet_loc:               '',
+  date3_loc:              '',
+  mingyeol_truth_known:   false,
+  heard_side:             '',
+  seoa_result:            '',
+  seoa_card_given:        false,
+  date_loc:               '',
+  promise_spring:         false,
 };
 
 // Safe audio: try/catch so missing assets never throw
@@ -41,9 +53,9 @@ function safePlay(file, loop) {
 async function boot() {
   const root = document.getElementById('game');
 
-  // Load data
+  // Load data — story.json contains all episodes (ep1→epilogue) in one combined file
   const [script, characters] = await Promise.all([
-    fetch('data/ep1.json').then(r => r.json()),
+    fetch('data/story.json').then(r => r.json()),
     fetch('data/characters.json').then(r => r.json()),
   ]);
 
@@ -107,7 +119,15 @@ async function boot() {
       autosave();
     },
     async callScreen(a) {
-      await overlay.callScreen(a);
+      if (a.name === 'result_card') {
+        // Inject computed ending data before showing the result card overlay
+        const [kind] = sys.final_ending();
+        const title = sys.ending_title(kind);
+        const type = sys.love_type();
+        await overlay.callScreen({ name: a.name, title, type });
+      } else {
+        await overlay.callScreen(a);
+      }
     },
     async toast(a) {
       overlay.toast(a);
@@ -130,6 +150,10 @@ async function boot() {
   const autosave = () => state.saveAuto(engine.position());
 
   await engine.start('episode1_full');
+  // Persist endings_seen after the story finishes.
+  // record_ending() mutates persistent.endings_seen during the epilogue,
+  // so saving here captures the newly unlocked ending across sessions.
+  state.savePersistent();
 }
 
 boot().catch(err => console.error('[boot]', err));

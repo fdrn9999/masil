@@ -7,6 +7,15 @@ export const ITEMS = {
   doyun_keyring:{ name: '도윤의 키링', icon: '🔑', desc: '도윤이 우정의 증표라며 쥐여준 낡은 키링. 버릴 수 없는 무게가 있다.' },
   polaroid:    { name: '폴라로이드', icon: '📷', desc: '지우와 성수 카페에서 찍은 폴라로이드 한 장. 둘 다 어색하게 웃고 있다.' },
 };
+export const ENDING_LIST = [
+  ["reconcile", "용서까지 데려다준 사람"],
+  ["doyun",     "그날 그 손을 끝까지"],
+  ["true",      "끝내 건넨 진심"],
+  ["good",      "서툰 진심"],
+  ["fishtank",  "모두의, 아무도 아닌"],
+  ["lonely",    "못다 준 사람"],
+  ["run",       "다시 혼자"],
+];
 export const CHAT_AVATARS = { '도윤': '#2fb574', '서아': '#e8553d', '지우': '#5ba3d0', '민결': '#b06cc0' };
 export const MASIL = {
   bg: '#e8ebf2', topbar: '#2f3447', topbar_txt: '#ffffff', topbar_sub: '#b8c0d0', online: '#46d18a',

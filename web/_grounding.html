@@ -137,6 +137,20 @@ const harness = document.getElementById('harness');
   o.toast({ kind: 'item',   text: '아이템 획득: 벚꽃 엽서' });
   o.toast({ kind: 'doyun',  text: '형 데이트 잘 돼가? ㅋㅋ' });
 })();
+
+// ── 7. Result card (ending) ──────────────────────────────────────────────────
+(() => {
+  const frame = makeFrame(harness, '⑦ Result card (ending)', `
+    <div id="stage"></div>
+    <div id="overlay" class="hidden"></div>
+  `);
+
+  makeOverlay(frame).callScreen({
+    name: 'result_card',
+    title: '그날 그 손을 끝까지',
+    type: ['의리파', '사랑보다 곁을 택한. 가장 단단한 걸 끝까지 지킨.'],
+  });
+})();
 </script>
 </body>
 </html>
