@@ -1862,3 +1862,16 @@ html, body {
   transition: opacity .12s;
 }
 .bl-close-btn:hover { opacity: .72; }
+
+/* ── 에셋 힌트 칩 — 배경 이미지 파일명/설명 (설정에서 끌 수 있음) ─────────── */
+#stage { background-size: cover; background-position: center; }
+.bg-hint {
+  position: absolute; top: 12px; left: 12px; z-index: 5;
+  background: rgba(20,16,22,.55); color: #fff;
+  font-size: 12px; font-family: var(--font-body, sans-serif);
+  padding: 5px 11px; border-radius: 999px; letter-spacing: .2px;
+  pointer-events: none; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px -6px rgba(0,0,0,.5);
+}
+.bg-hint--hidden { display: none; }
+.hide-asset-hints .bg-hint { display: none; }

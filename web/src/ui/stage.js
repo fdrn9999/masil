@@ -1,8 +1,18 @@
+import { BG_INFO } from '../theme.js';
+
 export function makeStage(root, backgrounds, playback = null) {
   const stage = root.querySelector('#stage');
   const box = root.querySelector('#textbox');
   const nameEl = root.querySelector('#name');
   const lineEl = root.querySelector('#line');
+
+  // Asset-hint chip — shows the expected background image filename + 설명 so you
+  // can tell which image each scene needs while playing. If the real image
+  // (images/bg/bg_<key>.png) exists it loads; otherwise the solid placeholder
+  // stays. Toggle off via 설정 → 에셋 힌트 (adds .hide-asset-hints on #game).
+  const hintEl = document.createElement('div');
+  hintEl.className = 'bg-hint bg-hint--hidden';
+  stage.appendChild(hintEl);
 
   function escapeHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -31,7 +41,25 @@ export function makeStage(root, backgrounds, playback = null) {
   }
 
   return {
-    scene({ bg }) { if (bg && backgrounds[bg]) stage.style.backgroundColor = backgrounds[bg]; },
+    scene({ bg }) {
+      if (!bg) return;
+      if (backgrounds[bg]) stage.style.backgroundColor = backgrounds[bg];
+      stage.style.backgroundImage = 'none';   // reset; restored on image load
+      const info = BG_INFO[bg];
+      const real = !info || info.real !== false;   // black/white flashes → no asset
+      if (real && /^\w+$/.test(bg)) {
+        const file = 'bg_' + bg;
+        const path = 'images/bg/' + file + '.png';
+        const img = new Image();
+        img.onload = () => { stage.style.backgroundImage = `url("${path}")`; };
+        img.onerror = () => {};                 // keep solid placeholder
+        img.src = path;
+        hintEl.textContent = file + '.png · ' + (info ? info.desc : bg);
+        hintEl.classList.remove('bg-hint--hidden');
+      } else {
+        hintEl.classList.add('bg-hint--hidden'); // 연출(암전/플래시) → 힌트 숨김
+      }
+    },
     say(a) {
       // Record history before showing
       if (playback) playback.pushHistory({ who: a.who, name: a.name, text: a.text });

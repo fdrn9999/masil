@@ -9,6 +9,7 @@ const DEFAULTS = {
   sfx:        0.9,
   brightness: 1.0,
   vibration:  true,
+  assetHints: true,   // 배경 에셋 파일명 칩 표시 (에셋 완성 후 끄면 됨)
 };
 
 function applyBrightness(v) {
@@ -16,6 +17,11 @@ function applyBrightness(v) {
   if (game) {
     game.style.filter = 'brightness(' + Number(v).toFixed(3) + ')';
   }
+}
+
+function applyAssetHints(v) {
+  const game = document.getElementById('game');
+  if (game) game.classList.toggle('hide-asset-hints', !v);
 }
 
 export function makeSettings(storage) {
@@ -36,8 +42,9 @@ export function makeSettings(storage) {
     // Corrupted or absent — use defaults
   }
 
-  // Apply brightness on load
+  // Apply brightness + asset-hint visibility on load
   applyBrightness(_data.brightness);
+  applyAssetHints(_data.assetHints);
 
   function save() {
     try { _storage.setItem(STORAGE_KEY, JSON.stringify(_data)); } catch (_e) {}
@@ -51,6 +58,7 @@ export function makeSettings(storage) {
       _data[key] = value;
       save();
       if (key === 'brightness') applyBrightness(value);
+      if (key === 'assetHints') applyAssetHints(value);
     },
     all() {
       return Object.assign({}, _data);
