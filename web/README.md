@@ -19,10 +19,18 @@ python3 -m http.server 8000
 
 ## 한글 폰트
 
-Pretendard Variable 웹폰트를 자체 호스팅 중 (`web/fonts/PretendardVariable.woff2`, ~2 MB).
-`style.css` 상단의 `@font-face` 블록이 이를 로드하며, CDN 의존 없이 오프라인/Vercel 배포 모두 동작.
-라이선스: SIL OFL 1.1 — `web/fonts/OFL.txt` 참조.
-출처: https://github.com/orioncactus/pretendard (v1.3.9)
+두 가지 웹폰트를 자체 호스팅 중 (CDN 의존 없이 오프라인/Vercel 배포 모두 동작):
+
+| 폰트 | 용도 | 파일 | 라이선스 |
+|------|------|------|----------|
+| **Jua** (우아한형제들) | 제목·이름·버튼 (디스플레이) | `fonts/Jua.woff2` (~360 KB) | SIL OFL 1.1 — `fonts/OFL-Jua.txt` |
+| **Pretendard Variable** | 본문 대사·UI | `fonts/PretendardVariable.woff2` (~2 MB) | SIL OFL 1.1 — `fonts/OFL.txt` |
+
+`style.css` 상단의 `@font-face` 블록 두 개가 이들을 로드한다.
+
+출처:
+- Jua: https://fonts.google.com/specimen/Jua (via fontsource CDN → self-hosted)
+- Pretendard: https://github.com/orioncactus/pretendard (v1.3.9)
 
 ## 완료 (마일스톤 2)
 

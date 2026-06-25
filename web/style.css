@@ -1,3 +1,12 @@
+/* ── Jua display font — self-hosted woff2 (SIL OFL 1.1, see fonts/OFL-Jua.txt) ── */
+@font-face {
+  font-family: "Jua";
+  src: url("fonts/Jua.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ── Pretendard variable font — self-hosted woff2 (SIL OFL 1.1, see fonts/OFL.txt) ── */
 @font-face {
   font-family: "Pretendard";
@@ -7,28 +16,179 @@
   font-display: swap;
 }
 
-:root { --bg:#15171f; --ink:#eef0f6; }
+/* ── Pastel design tokens ── */
+:root {
+  /* Palette */
+  --cream: #fff7f0;
+  --cream2: #fdeee4;
+  --blush: #ffd5dd;
+  --blush-deep: #ff9eb3;
+  --mint: #bfeede;
+  --mint-deep: #5fd3b0;
+  --track: #7fdcc0;
+  --lav: #d9d2ff;
+  --lav-deep: #a99cf2;
+  --peach: #ffd9b8;
+  --ink: #5a4a55;
+  --ink-soft: #9a8893;
+  --send: #9aa6ff;
+  --send-grad: #c6ccff;
+  --online: #46d18a;
+
+  /* Typography */
+  --font-display: "Jua", sans-serif;
+  --font-body: "Pretendard", system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+  /* Radii */
+  --r-sm: 14px;
+  --r-md: 22px;
+  --r-lg: 30px;
+  --r-xl: 36px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-card: 0 18px 40px -18px rgba(180,140,160,.45), 0 4px 0 #ffe6ec inset;
+  --shadow-hero: 0 22px 46px -20px rgba(160,140,200,.5), 0 5px 0 #ffffff inset;
+  --shadow-btn:  0 9px 18px -10px rgba(255,120,160,.5), 0 3px 0 #fff inset;
+  --shadow-btn-hover: 0 14px 24px -10px rgba(255,100,140,.65), 0 3px 0 #fff inset;
+}
+
 * { box-sizing: border-box; margin: 0; }
-html, body { height: 100%; background:#000; color:var(--ink);
-  font-family: "Pretendard", system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
-#game { position: relative; width: 100vw; height: 100vh; max-width: calc(100vh * 16 / 9);
-  margin: 0 auto; overflow: hidden; }
-#stage { position:absolute; inset:0; transition: background-color .4s ease; background:#000; }
-.hidden { display:none !important; }
-#textbox { position:absolute; left:0; right:0; bottom:0; min-height:26%;
-  background:#0b0d14d9; padding: 5% 6% 6%; cursor:pointer; }
-#name { font-weight:700; font-size: clamp(16px,2.6vw,24px); margin-bottom:.4em; }
-#line { font-size: clamp(15px,2.4vw,22px); line-height:1.65; white-space:pre-wrap; }
-#choices { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center;
-  align-items:center; gap:14px; background:#0008; padding:8%; }
-#choices button { width:min(680px,92%); padding:18px 22px; font-size: clamp(15px,2.3vw,22px);
-  border:0; border-radius:14px; background:#eef0f8; color:#2f3447; cursor:pointer; text-align:left; }
-#choices button:hover { background:#dfe3f6; }
-#toast { position:absolute; top:14px; left:50%; transform:translateX(-50%); display:flex;
-  flex-direction:column; gap:8px; pointer-events:none; z-index:90; }
-.toast-item { background:#1f2333ee; color:#cfd4e6; padding:12px 18px; border-radius:12px;
-  font-size:15px; box-shadow:0 6px 24px #0007; }
-.toast-doyun { border-left:4px solid #2fb574; }
+
+html, body {
+  height: 100%;
+  background:
+    radial-gradient(circle at 12% 10%, #ffe9ef 0%, transparent 42%),
+    radial-gradient(circle at 88% 8%,  #e3f7ef 0%, transparent 40%),
+    radial-gradient(circle at 80% 92%, #ece6ff 0%, transparent 46%),
+    linear-gradient(160deg, var(--cream) 0%, var(--cream2) 100%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#game {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  max-width: calc(100vh * 16 / 9);
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+#stage {
+  position: absolute;
+  inset: 0;
+  transition: background-color .4s ease;
+  background: transparent;
+}
+
+.hidden { display: none !important; }
+
+/* ── Textbox (대사창) — pastel soft card ── */
+#textbox {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  min-height: 26%;
+  background: rgba(255,247,240,.93);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 5% 6% 6%;
+  cursor: pointer;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  box-shadow: var(--shadow-card);
+  border: 2px solid rgba(255,255,255,.8);
+  border-bottom: none;
+}
+
+/* ── Name label — Jua display, keeps character colour ── */
+#name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(16px, 2.6vw, 24px);
+  margin-bottom: .4em;
+  /* character colour set inline by stage.js — preserved */
+}
+
+/* ── Dialogue line — Pretendard body, readable ink ── */
+#line {
+  font-family: var(--font-body);
+  font-size: clamp(15px, 2.4vw, 22px);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* ── Choices — pastel pill buttons ── */
+#choices {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255,247,240,.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 8%;
+}
+
+#choices button {
+  width: min(680px, 92%);
+  padding: 18px 22px;
+  font-size: clamp(15px, 2.3vw, 22px);
+  font-family: var(--font-body);
+  font-weight: 700;
+  border: 2px solid rgba(255,255,255,.8);
+  border-radius: var(--r-lg);
+  background: linear-gradient(135deg, #ffe1e9, #ffd0dd);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: var(--shadow-btn);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+#choices button:nth-child(even) {
+  background: linear-gradient(135deg, #d8f5ec, #c3eee0);
+  box-shadow: 0 9px 18px -10px rgba(90,200,170,.7), 0 3px 0 #fff inset;
+}
+
+#choices button:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-btn-hover);
+}
+
+#choices button:nth-child(even):hover {
+  box-shadow: 0 14px 24px -10px rgba(70,190,160,.8), 0 3px 0 #fff inset;
+}
+
+/* ── Toast notifications ── */
+#toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 90;
+}
+
+.toast-item {
+  background: linear-gradient(135deg, #fff, #fff4ee);
+  color: var(--ink);
+  padding: 12px 18px;
+  border-radius: var(--r-md);
+  font-size: 15px;
+  box-shadow: 0 12px 26px -12px rgba(200,140,120,.6);
+  border: 1.5px solid #ffe6d8;
+}
+
+.toast-doyun { border-left: 4px solid var(--mint-deep); }
 
 /* ── Task 10: 마실 채팅 UI ── */
 #chat { position:absolute; inset:0; background:#e8ebf2; display:flex; flex-direction:column; z-index:50; }
