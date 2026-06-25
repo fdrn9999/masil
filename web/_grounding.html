@@ -63,11 +63,12 @@ const harness = document.getElementById('harness');
   const st = makeStage(frame, backgrounds);
   st.scene({ bg: 'room' });
   // don't await — let the Promise pend; we just want the rendered state
+  // Use mc (light color #cfd4e6) to verify luminance guard makes name legible
   st.say({
-    who: 'd',
-    name: '도윤',
-    color: '#2fb574',
-    text: '형 이거 {i}진짜{/i} 잘 만들었다?{p}한 줄 더.',
+    who: 'mc',
+    name: '진호',
+    color: '#cfd4e6',
+    text: '(mc name legibility test — should be dark on cream textbox)',
   });
 })();
 
