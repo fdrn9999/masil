@@ -40,10 +40,17 @@ function formatTime(ts) {
 // pos is a peek result {label,ip,callStack,meta}; slotKey is 'quick' or a number (1-6).
 // The slotKey is stored so boot() can call state.loadSlot(n) / state.loadQuick()
 // to restore vars (peek does NOT restore vars; only _load does).
-export function requestResume(pos, slotKey) {
+export function requestResume(pos, slotKey, varsSnapshot) {
   const payload = Object.assign({}, pos, slotKey !== undefined ? { _slotKey: slotKey } : {});
+  if (varsSnapshot !== undefined) payload._vars = varsSnapshot;
   sessionStorage.setItem('masil.resumeOnLoad', JSON.stringify(payload));
   location.reload();
+}
+
+// Rollback: reload-resume carrying a vars snapshot (no slot key needed).
+// boot() detects _vars and restores state.vars before resuming.
+export function requestRollback(pos, vars) {
+  requestResume(pos, undefined, vars);
 }
 
 // ── makeSaveLoad ───────────────────────────────────────────────────────────────

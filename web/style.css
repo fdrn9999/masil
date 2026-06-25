@@ -1606,3 +1606,259 @@ html, body {
 @media (max-width: 460px) {
   .sl-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   🎮 System menu bar (sysmenu.js) — in-game control cluster
+   z-index 60: above textbox (0) + chat (50), below modals (70+)
+   Non-blocking: never touches the engine await chain.
+══════════════════════════════════════════════════════════════════ */
+
+#sysmenu-bar {
+  position: absolute;
+  bottom: calc(26% + 14px);   /* sit just above the textbox */
+  right: 10px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  background: rgba(255, 247, 240, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--r-lg);
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 8px 22px -10px rgba(180, 140, 160, 0.45), 0 2px 0 rgba(255,255,255,.6) inset;
+}
+
+/* Shared button style */
+.sm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--r-sm);
+  background: linear-gradient(135deg, #fff7f0, #fdeee4);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 8px -5px rgba(180,140,160,.5), 0 2px 0 rgba(255,255,255,.5) inset;
+  transition: transform .1s ease, box-shadow .1s ease, background .15s ease;
+  white-space: nowrap;
+}
+
+.sm-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -5px rgba(180,140,160,.65), 0 2px 0 rgba(255,255,255,.5) inset;
+}
+
+.sm-btn:active {
+  transform: translateY(0);
+}
+
+/* Skip button: blush accent when inactive */
+.sm-btn--skip { color: var(--ink-soft); }
+
+/* Auto button: lav accent when inactive */
+.sm-btn--auto { color: var(--ink-soft); }
+
+/* ACTIVE state — lit up (skip = blush-deep, auto = lav-deep) */
+.sm-btn--skip.sm-btn--active {
+  background: linear-gradient(135deg, var(--blush), var(--blush-deep));
+  color: #fff;
+  border-color: rgba(255,255,255,.5);
+  box-shadow: 0 6px 14px -6px rgba(255,120,160,.7), 0 2px 0 rgba(255,255,255,.35) inset;
+}
+
+.sm-btn--auto.sm-btn--active {
+  background: linear-gradient(135deg, var(--lav), var(--lav-deep));
+  color: #fff;
+  border-color: rgba(255,255,255,.5);
+  box-shadow: 0 6px 14px -6px rgba(150,120,230,.7), 0 2px 0 rgba(255,255,255,.35) inset;
+}
+
+/* Rollback: mint tint */
+.sm-btn--rollback { color: var(--mint-deep); }
+.sm-btn--rollback:hover { background: linear-gradient(135deg, #eafaf3, var(--mint)); }
+
+/* Title: blush tint */
+.sm-btn--title { color: var(--blush-deep); }
+
+/* Save / Load: peach tint */
+.sm-btn--save, .sm-btn--load { color: var(--ink); }
+
+/* QS / QL: subtle lav */
+.sm-btn--qs, .sm-btn--ql {
+  font-size: 11px;
+  min-width: 26px;
+  color: var(--lav-deep);
+}
+
+/* Thin vertical divider between backlog and save group */
+.sm-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(180,140,160,.25);
+  border-radius: 1px;
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   📜 Backlog overlay (backlog.js) — dialogue history
+   z-index 75: above overlay (70) but below toast (90)
+══════════════════════════════════════════════════════════════════ */
+
+#backlog-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 75;
+  pointer-events: none;
+}
+
+#backlog-layer:not(.hidden) {
+  pointer-events: auto;
+}
+
+.bl-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(90, 74, 85, 0.48);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6%;
+}
+
+.bl-panel {
+  background: linear-gradient(160deg, #fff7f0 0%, #fdeee4 100%);
+  border-radius: var(--r-xl);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 22px 50px -20px rgba(180,140,160,.5), 0 5px 0 #fff inset;
+  width: min(640px, 100%);
+  height: min(520px, 72vh);   /* explicit height so flex children can expand */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bl-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1.5px solid rgba(180,140,160,.15);
+  flex-shrink: 0;
+}
+
+.bl-panel__title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.bl-panel__x {
+  width: 30px; height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink-soft);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 8px -3px rgba(180,140,160,.35);
+  transition: transform .12s, color .12s;
+}
+.bl-panel__x:hover { transform: scale(1.1); color: var(--blush-deep); }
+
+/* Scrollable log */
+.bl-scroll {
+  flex: 1 1 0;
+  overflow-y: auto;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Custom pastel scrollbar (WebKit) */
+  scrollbar-width: thin;
+  scrollbar-color: var(--blush) transparent;
+}
+.bl-scroll::-webkit-scrollbar { width: 6px; }
+.bl-scroll::-webkit-scrollbar-track { background: transparent; }
+.bl-scroll::-webkit-scrollbar-thumb { background: var(--blush); border-radius: 3px; }
+
+/* Entry card */
+.bl-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: rgba(255,255,255,.72);
+  border: 1.5px solid rgba(255,255,255,.85);
+  box-shadow: 0 4px 10px -6px rgba(180,140,160,.35);
+}
+
+/* Narration entries: slightly dimmer, no name */
+.bl-entry--narration {
+  background: rgba(253,238,228,.55);
+  border-color: rgba(255,220,200,.6);
+}
+
+.bl-entry__name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-soft);   /* overridden inline with character color */
+}
+
+.bl-entry__text {
+  font-family: var(--font-body);
+  font-size: clamp(13px, 2vw, 15px);
+  line-height: 1.6;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.bl-entry--narration .bl-entry__text {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+/* Empty state */
+.bl-empty {
+  text-align: center;
+  padding: 32px 16px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+/* Footer close row */
+.bl-panel__footer {
+  padding: 10px 20px 14px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1.5px solid rgba(180,140,160,.12);
+  flex-shrink: 0;
+}
+
+.bl-close-btn {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--lav-deep);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  transition: opacity .12s;
+}
+.bl-close-btn:hover { opacity: .72; }

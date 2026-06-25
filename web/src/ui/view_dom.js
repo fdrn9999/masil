@@ -13,8 +13,10 @@ import { makeSettings }   from '../settings.js';
 import { makeAudio }      from '../audio.js';
 import { makeSettingsUI } from './settings_ui.js';
 import { makeTitle }      from './title.js';
-import { makeSaveLoad, requestResume } from './saveload.js';
+import { makeSaveLoad, requestResume, requestRollback } from './saveload.js';
 import { makePlayback }   from '../playback.js';
+import { makeSysMenu }    from './sysmenu.js';
+import { makeBacklog }    from './backlog.js';
 
 const AVATAR_FILES = {
   '도윤': 'images/avatar/avatar_doyun.png',
@@ -101,12 +103,17 @@ async function boot() {
 
   let isChatOpen = false;
 
+  // Small delay helper for skip/auto fast-forward
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+
   // view sink — delegates every engine op to the right UI module
   const view = {
     async scene(a) {
       stage.scene(a);
     },
     async say(a) {
+      // Push rollback snapshot BEFORE advancing (preserves pre-line state)
+      playback.pushSnapshot({ vars: state.vars, pos: engine.position() });
       await stage.say(a);
       autosave();
     },
@@ -125,6 +132,8 @@ async function boot() {
       await chat.send(a);
     },
     async pause() {
+      if (playback.isSkip()) { await delay(30); return; }
+      if (playback.isAuto()) { await delay(900); return; }
       if (isChatOpen) {
         await chat.waitTap();
       } else {
@@ -184,10 +193,42 @@ async function boot() {
   // by stage/chat as the player reads — so buildMeta previews are populated.
   const saveLoad = makeSaveLoad(root, { state, engine, playback, audio });
 
+  // ── Backlog overlay ────────────────────────────────────────────────────────
+  const backlog = makeBacklog(root, { playback, characters });
+
+  // ── Rollback handler ───────────────────────────────────────────────────────
+  function handleRollback() {
+    if (playback.canRollback()) {
+      const snap = playback.popSnapshot();
+      // Deep-clone vars so the live state.vars object doesn't alias the snapshot
+      requestRollback(snap.pos, JSON.parse(JSON.stringify(snap.vars)));
+    } else {
+      overlay.toast({ text: '더 되돌릴 수 없어요' });
+    }
+  }
+
+  // ── System menu bar (skip/auto/backlog/save/load/title) ───────────────────
+  const sysMenu = makeSysMenu(root, {
+    playback,
+    onSave:       () => saveLoad.open('save'),
+    onLoad:       () => saveLoad.open('load'),
+    onBacklog:    () => backlog.open(),
+    onTitle:      () => {
+      if (confirm('타이틀 화면으로 돌아가시겠어요?\n(저장되지 않은 진행은 사라집니다)')) {
+        sessionStorage.removeItem('masil.resumeOnLoad');
+        location.reload();
+      }
+    },
+    onQuickSave:  () => quicksave(),
+    onQuickLoad:  () => quickload(),
+    onRollback:   () => handleRollback(),
+  });
+
   // ── Mount game buttons (⚙️/📱) only after the game starts, not on the title. ──
   function mountGameButtons() {
     phone.mountButton();
     settingsUI.mountButton();
+    sysMenu.mountBar();
   }
 
   // ── gameStarted flag — gates F5/F9 quicksave/quickload ────────────────────
@@ -229,8 +270,13 @@ async function boot() {
   // state.loadSlot / state.loadQuick here — those calls restore state.vars.
   if (_resumePos) {
     const slotKey = _resumePos._slotKey;
+    const varsSnapshot = _resumePos._vars;  // present for rollback path
     let resumedPos;
-    if (slotKey === 'quick') {
+    if (varsSnapshot !== undefined) {
+      // Rollback path: restore vars from snapshot, use pos directly (no slot load)
+      state.vars = JSON.parse(JSON.stringify(varsSnapshot));
+      resumedPos = _resumePos;
+    } else if (slotKey === 'quick') {
       resumedPos = state.loadQuick();
     } else if (typeof slotKey === 'number') {
       resumedPos = state.loadSlot(slotKey);
