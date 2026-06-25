@@ -64,9 +64,7 @@ async function boot() {
   const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES });
   const menu = makeMenu(root);
 
-  let chatOpen = false;
-
-  function autosave() { state.saveAuto(engine.position()); }
+  let isChatOpen = false;
 
   // view sink — delegates every engine op to the right UI module
   const view = {
@@ -78,11 +76,11 @@ async function boot() {
       autosave();
     },
     async chatOpen(a) {
-      chatOpen = true;
+      isChatOpen = true;
       chat.open(a);
     },
     async chatClose() {
-      chatOpen = false;
+      isChatOpen = false;
       chat.close();
     },
     async recv(a) {
@@ -92,7 +90,7 @@ async function boot() {
       await chat.send(a);
     },
     async pause() {
-      if (chatOpen) {
+      if (isChatOpen) {
         await chat.waitTap();
       } else {
         await stage.waitAdvance();
@@ -129,6 +127,7 @@ async function boot() {
   };
 
   const engine = new Engine({ script, characters, state, sys, evaluator: makeEvaluator(state, sys), view });
+  const autosave = () => state.saveAuto(engine.position());
 
   await engine.start('episode1_full');
 }
