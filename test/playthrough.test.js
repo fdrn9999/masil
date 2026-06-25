@@ -5,9 +5,14 @@ import { GameState } from '../web/src/state.js';
 import { makeSystems } from '../web/src/systems.js';
 import { makeEvaluator } from '../web/src/eval_expr.js';
 import { Engine } from '../web/src/engine.js';
+import { assembleStory } from '../web/src/load_story.js';
 
-// All episodes combined — ep1 → ep4 → epilogue
-const script = JSON.parse(readFileSync(new URL('../web/data/story.json', import.meta.url)));
+// Story is split per-episode under data/story/ — assemble it exactly like the
+// browser loader (concatenate node arrays in order, recompute labels).
+const _storyBase = new URL('../web/data/story/', import.meta.url);
+const _meta = JSON.parse(readFileSync(new URL('meta.json', _storyBase)));
+const _epNodes = _meta.episodes.map(f => JSON.parse(readFileSync(new URL(f, _storyBase))).nodes);
+const script = assembleStory(_meta, _epNodes);
 const characters = JSON.parse(readFileSync(new URL('../web/data/characters.json', import.meta.url)));
 
 // Structural defaults not present in script.defaults

@@ -1,0 +1,48 @@
+{
+ "episodes": [
+  "ep1.json",
+  "ep2.json",
+  "ep3.json",
+  "ep4.json",
+  "epilogue.json"
+ ],
+ "defaults": {
+  "mc_name": "나",
+  "seoa_result": "",
+  "doyun_bond": 0,
+  "date_loc": "",
+  "seoa_card_given": false,
+  "doyun_secret_seen": false,
+  "meet_loc": "",
+  "date3_loc": "",
+  "mingyeol_truth_known": false,
+  "ep4_choice": "",
+  "heard_side": ""
+ },
+ "backgrounds": {
+  "room": "#23283d",
+  "room_dawn": "#3a3550",
+  "sinchon": "#3a4a3f",
+  "cafe": "#4a3f3a",
+  "alley": "#2d2a33",
+  "han_night": "#1e2a38",
+  "street_n": "#1b1f2e",
+  "black": "#000000",
+  "white": "#ffffff",
+  "pojang": "#3a2f2a",
+  "konkuk": "#33282f",
+  "street_night": "#1b1f2e",
+  "mullae_alley": "#2a2722",
+  "boardcafe": "#2e3340",
+  "seongsu": "#43484f",
+  "seoulsup": "#34402f",
+  "han_river": "#1e2a38",
+  "cafe_in": "#4a3f3a",
+  "gangnam": "#2b2b33",
+  "rooftop": "#22283a",
+  "doyun_room": "#241f1f",
+  "room_later": "#272a3a",
+  "window_dusk": "#2a2c3e"
+ },
+ "review": []
+}

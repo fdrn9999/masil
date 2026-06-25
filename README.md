@@ -86,7 +86,7 @@ web/
 │  ├─ se/                  효과음 SE (CC0 Kenney) + 앰비언스
 │  └─ CREDITS.txt          사운드 라이선스/출처
 ├─ data/
-│  ├─ story.json           전체 스토리 (730노드 · 40라벨) — 콘텐츠 소스
+│  ├─ story/               스토리(화별 분리) — ep1~epilogue.json + meta.json (합산 728노드·40라벨)
 │  └─ characters.json      캐릭터 정의(이름·색)
 └─ src/
    ├─ engine.js            노드 스크립트를 실행하는 상태머신

@@ -1,0 +1,526 @@
+{
+ "nodes": [
+  {
+   "op": "label",
+   "name": "epilogue_full"
+  },
+  {
+   "op": "set",
+   "expr": "V.show_gauges = false"
+  },
+  {
+   "op": "scene",
+   "bg": "black",
+   "with": "slowfade"
+  },
+  {
+   "op": "music",
+   "file": "audio/bgm/bgm_warm.mp3",
+   "fadein": 2
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "{i}…그 시절, 우리는 매일 그 톡방에 있었다.{/i}"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "scene",
+   "bg": "room_later",
+   "with": "longdissolve"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "시간이,{w=0.4} 많이 흘렀다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "회사를 옮겼고, 동네를 옮겼고,{w=0.3} 오픈챗 알림은 어느새 거의 울리지 않는다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "어느 늦은 밤,{w=0.4} 문득 오랜만에 '마실'을 켰다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "그 시절 북적이던 톡방은,{w=0.4} 이제 대부분 조용하다."
+  },
+  {
+   "op": "music",
+   "file": "audio/bgm/bgm_emotional.mp3",
+   "fadein": 1.5
+  },
+  {
+   "op": "set",
+   "expr": "[V.ekind, V.ewho] = S.final_ending()"
+  },
+  {
+   "op": "set",
+   "expr": "S.record_ending(V.ekind)"
+  },
+  {
+   "op": "if",
+   "cond": "V.ekind == \"reconcile\"",
+   "then": [
+    {
+     "op": "jump",
+     "label": "epi_reconcile"
+    }
+   ],
+   "else": [
+    {
+     "op": "if",
+     "cond": "V.ekind == \"doyun\"",
+     "then": [
+      {
+       "op": "jump",
+       "label": "epi_doyun"
+      }
+     ],
+     "else": [
+      {
+       "op": "if",
+       "cond": "V.ekind == \"fishtank\"",
+       "then": [
+        {
+         "op": "jump",
+         "label": "epi_fishtank"
+        }
+       ],
+       "else": [
+        {
+         "op": "if",
+         "cond": "V.ekind == \"true\" && V.ewho",
+         "then": [
+          {
+           "op": "jump",
+           "label": "epi_true"
+          }
+         ],
+         "else": [
+          {
+           "op": "if",
+           "cond": "V.ekind == \"good\" && V.ewho",
+           "then": [
+            {
+             "op": "jump",
+             "label": "epi_good"
+            }
+           ],
+           "else": [
+            {
+             "op": "jump",
+             "label": "epi_bitter"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "op": "label",
+   "name": "epi_reconcile"
+  },
+  {
+   "op": "chat_open",
+   "room": "그때 그 톡방"
+  },
+  {
+   "op": "recv",
+   "name": "민결",
+   "text": "오늘 셋이 보기로 한 거 안 까먹었지?"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "send",
+   "text": "당연하지. 도윤이가 더 신났더라 ㅋㅋ"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "chat_close"
+  },
+  {
+   "op": "scene",
+   "bg": "room_later",
+   "with": "Dissolve(1.0)"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "가장 어려운 길이었다.{w=0.3} 도윤도, 민결도 잃지 않는 길."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "오래 묵은 상처가 한 번에 아문 건 아니었지만,{w=0.3} 우리 셋은 여전히, 천천히, 같이 가고 있다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "도망치지 않고 끝까지 마주한 끝에 남은 건 —{w=0.4} 한 사람이 아니라, 두 사람이었다."
+  },
+  {
+   "op": "jump",
+   "label": "epi_close"
+  },
+  {
+   "op": "label",
+   "name": "epi_doyun"
+  },
+  {
+   "op": "scene",
+   "bg": "room_later",
+   "with": "Dissolve(1.0)"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "민결을 정리하던 날은 오래 쓰렸다.{w=0.3} 그래도 후회하진 않았다.{w=0.4} 그건 도윤을 지킨 선택이었으니까."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "누군가는 의리 따위라고 했을지 몰라도,{w=0.4} 나한텐 그게 가장 진짜였다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "사랑이 어떻게 됐든,{w=0.3} 내 인생에서 가장 단단한 사람은 끝까지 곁에 남았다."
+  },
+  {
+   "op": "jump",
+   "label": "epi_close"
+  },
+  {
+   "op": "label",
+   "name": "epi_fishtank"
+  },
+  {
+   "op": "chat_open",
+   "room": "마실"
+  },
+  {
+   "op": "recv",
+   "name": "???",
+   "text": "오빠 요즘 왜 답이 없어요?"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "recv",
+   "name": "???",
+   "text": "우리 그래도… 좋았잖아."
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "chat_close"
+  },
+  {
+   "op": "scene",
+   "bg": "room_later",
+   "with": "Dissolve(1.0)"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "한때 여러 톡방이 동시에 울렸다.{w=0.3} 다들 나한테 잘 대해줬고, 나도 다들에게 잘했다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "그런데 잘 보이기만 했지,{w=0.4} 누구에게도 진짜 나를 주진 않았다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "이름이 많던 그 방들은,{w=0.4} 하나씩 조용해졌다.{p}남은 건, 잘 보이던 내 빈손뿐이었다."
+  },
+  {
+   "op": "jump",
+   "label": "epi_close"
+  },
+  {
+   "op": "label",
+   "name": "epi_true"
+  },
+  {
+   "op": "set",
+   "expr": "V.who_n = S.hname(V.ewho)"
+  },
+  {
+   "op": "chat_open",
+   "room": "그때 그 톡방"
+  },
+  {
+   "op": "recv",
+   "name": "[who_n]",
+   "text": "안녕하세요! 프로필 보고 연락드려요 ㅎㅎ"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "send",
+   "text": "아 안녕하세요!"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "chat_close"
+  },
+  {
+   "op": "scene",
+   "bg": "room_later",
+   "with": "Dissolve(1.0)"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "그 짧은 톡 몇 줄로 시작한 사이가,{w=0.4} 아직도 내 옆에 있다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "가볍게 시작했지만,{w=0.3} 끝까지 가벼웁지 않게 굴었던 게 — 다행이었다."
+  },
+  {
+   "op": "jump",
+   "label": "epi_close"
+  },
+  {
+   "op": "label",
+   "name": "epi_good"
+  },
+  {
+   "op": "set",
+   "expr": "V.who_n = S.hname(V.ewho)"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "[who_n] 와는,{w=0.4} 어느 순간 자연스럽게 멀어졌다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "그래도 끝까지 서로에게 솔직했고,{w=0.3} 나쁘지 않게 헤어졌다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "가끔 생각난다.{w=0.4} 그 정도면,{w=0.3} 꽤 괜찮은 인연이었다고."
+  },
+  {
+   "op": "jump",
+   "label": "epi_close"
+  },
+  {
+   "op": "label",
+   "name": "epi_bitter"
+  },
+  {
+   "op": "set",
+   "expr": "V.who_n = S.bitter_candidate()"
+  },
+  {
+   "op": "chat_open",
+   "room": "그때 그 톡방"
+  },
+  {
+   "op": "recv",
+   "name": "[who_n]",
+   "text": "우리 그냥… 좀 더 솔직해져 볼래요?"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "{i}그때 나는, 또 가벼운 척 웃어넘겼다.{/i}"
+  },
+  {
+   "op": "send",
+   "text": "ㅎㅎ 천천히 알아가요 우리"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "chat_close"
+  },
+  {
+   "op": "scene",
+   "bg": "room_later",
+   "with": "Dissolve(1.0)"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "그 '천천히'는,{w=0.4} 결국 오지 않았다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "[who_n] 는 잘 지낸다고 들었다.{w=0.4} 좋은 사람을 만났다고도."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "잘된 일이다.{w=0.3} 정말로.{p}…그런데 왜 자꾸,{w=0.3} 그때 그 답장을 다시 쓰고 싶어질까."
+  },
+  {
+   "op": "jump",
+   "label": "epi_close"
+  },
+  {
+   "op": "label",
+   "name": "epi_close"
+  },
+  {
+   "op": "scene",
+   "bg": "window_dusk",
+   "with": "longdissolve"
+  },
+  {
+   "op": "music",
+   "file": "audio/bgm/bgm_warm.mp3",
+   "fadein": 2
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "톡방을 닫으려는데,{w=0.4} 익숙한 알림 하나가 떴다."
+  },
+  {
+   "op": "chat_open",
+   "room": "도윤"
+  },
+  {
+   "op": "recv",
+   "name": "도윤",
+   "text": "형 안 자? ㅋㅋ 갑자기 옛날 생각나서"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "recv",
+   "name": "도윤",
+   "text": "그때 형이 날 안 잡아줬으면 지금 나 없었다? 진심"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "send",
+   "text": "오글거리니까 그만해 인마"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "recv",
+   "name": "도윤",
+   "text": "ㅋㅋㅋ 알겠어. 나 여기 있으니까, 천천히 와 형."
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "chat_close"
+  },
+  {
+   "op": "scene",
+   "bg": "window_dusk"
+  },
+  {
+   "op": "if",
+   "cond": "V.promise_spring",
+   "then": [
+    {
+     "op": "say",
+     "who": "n",
+     "text": "그러고 보니 —{w=0.3} 봄에 석촌호수 가자던 약속, 그 봄이 벌써 몇 번이나 지났다."
+    },
+    {
+     "op": "say",
+     "who": "n",
+     "text": "어떤 약속은,{w=0.3} 지켜서가 아니라 남겨둔 것만으로도 사람을 살게 한다."
+    }
+   ]
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "가볍게 시작했던 그 톡방에서,{w=0.4} 나는 한 가지는 분명히 배웠다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "진심을 주는 건 무섭고,{w=0.3} 가끔은 너무 늦는다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "그래도——{w=0.5} 누군가의 손을 끝까지 놓지 않았던 그 밤들은,{w=0.4} 분명히 진짜였다."
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "scene",
+   "bg": "black",
+   "with": "slowfade"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "{size=42}그 시절,{p}우리가 좋아했던 사람들에게{/size}"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "stop",
+   "channel": "music"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "{size=30}─ 끝 ─{/size}"
+  },
+  {
+   "op": "pause"
+  },
+  {
+   "op": "call_screen",
+   "name": "result_card"
+  },
+  {
+   "op": "return"
+  }
+ ]
+}

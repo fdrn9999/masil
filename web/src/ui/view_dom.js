@@ -16,6 +16,7 @@ import { makeSettingsUI } from './settings_ui.js';
 import { makeTitle }      from './title.js';
 import { makeSaveLoad, requestResume, requestRollback } from './saveload.js';
 import { makePlayback }   from '../playback.js';
+import { loadStory }      from '../load_story.js';
 import { makeSysMenu }    from './sysmenu.js';
 import { makeBacklog }    from './backlog.js';
 
@@ -66,9 +67,10 @@ async function boot() {
   const settings = makeSettings();
   const audio = makeAudio(settings);
 
-  // Load data — story.json contains all episodes (ep1→epilogue) in one combined file
+  // Load data — story is split per-episode under data/story/ and concatenated
+  // at load time (labels recomputed from actual node order). See load_story.js.
   const [script, characters] = await Promise.all([
-    fetch('data/story.json').then(r => r.json()),
+    loadStory('data/story'),
     fetch('data/characters.json').then(r => r.json()),
   ]);
 

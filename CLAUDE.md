@@ -17,7 +17,7 @@ Apply what the task signals; with no signal, baseline only. Read each pack only 
 ## 환경 (먼저 알 것)
 - **빌드 없음·외부 의존성 0.** 브라우저가 `web/`의 ES 모듈을 직접 로드. 번들러/npm install 금지.
 - **테스트:** Node 내장 러너 — `node --test test/*.test.js` (repo 루트). `node --test test/`(디렉터리형)는 이 환경에서 실패하니 글롭/파일명 사용.
-- **콘텐츠 소스:** `web/data/story.json`(전체 스토리 노드 배열) + `web/data/characters.json`. **대사 수정은 story.json을 직접 편집**(Ren'Py 대본은 더 이상 없음 — 옛 버전은 git 히스토리에).
+- **콘텐츠 소스:** 스토리는 화별로 분리 — `web/data/story/ep1.json`·`ep2.json`·`ep3.json`·`ep4.json`·`epilogue.json`(각 `{nodes:[…]}`) + `web/data/story/meta.json`(defaults·backgrounds·review·에피소드 목록). 로드 시 `web/src/load_story.js`의 `loadStory()`가 노드를 순서대로 합치고 **라벨을 노드 위치에서 재계산**(빌드 없음). **대사·내용 수정은 해당 화 파일을 직접 편집**(예: Ep.2 대사 → `data/story/ep2.json`). `characters.json`은 인물(n/mc/d/s/j/m). Ren'Py 대본·통합 story.json은 git 히스토리에.
 - **렌더 검증:** UI 변경은 헤드리스 Chrome 스크린샷으로 실제 관찰(grounding). 정적 점검은 관찰이 아님.
 - **Windows 콘솔(cp949) 주의:** 헬퍼는 `PYTHONUTF8=1 python3 -X utf8`, 출력은 파일로 받아 Read. 한글에서 깨진다.
 
@@ -32,7 +32,7 @@ Apply what the task signals; with no signal, baseline only. Read each pack only 
 - **반대로 MC→도윤 반말("자냐 인마")은 정상 → 고치지 말 것.** 고칠 대상은 story.json의 `{"who":"d", ...}` say, `{"op":"recv","name":"도윤"}`, 그리고 `systems.js`의 `doyun_line`/`_doyun_read` 도윤 말뿐.
 
 ## 파일 지도 (`web/`)
-- **콘텐츠:** `data/story.json`(전체 스토리·730노드·40라벨) · `data/characters.json`. 캐릭터: `n`(나레이션) `mc`(나) `d`(도윤) `s`(서아) `j`(지우) `m`(민결).
+- **콘텐츠:** `data/story/ep1~epilogue.json`(화별 노드, 합산 728노드·40라벨) + `data/story/meta.json` · `data/characters.json` · 로더 `src/load_story.js`. 캐릭터: `n`(나레이션) `mc`(나) `d`(도윤) `s`(서아) `j`(지우) `m`(민결).
 - **엔진:** `src/engine.js`(노드 상태머신) · `src/state.js`(상태+localStorage 세이브) · `src/eval_expr.js`(조건/식 평가 `V/S/P` 스코프).
 - **시스템:** `src/systems.js`(게이지·아이템·`final_ending`/`decide_ending`·도윤 상담·`apply_timing`·`record_ending`·`love_type`) · `src/theme.js`(테마·아이템·`ENDING_LIST` 상수).
 - **UI:** `src/ui/stage.js`(배경·대사) · `chat.js`(마실 채팅) · `menu.js`(선택지·입력) · `overlay.js`(상담·토스트·맵 스텁·result_card) · `view_dom.js`(부팅·엔진↔DOM 배선).
