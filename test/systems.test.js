@@ -53,3 +53,19 @@ test('apply_timing seoa now boosts like and returns line', () => {
   assert.equal(state.vars.like.seoa, 10);
   assert.match(line, /답장 빠르네/);
 });
+
+test('bitter_candidate returns hname of heroine with max like+sincere', () => {
+  const { sys, state } = mkSys();
+  state.vars.like = { seoa: 30, jiu: 60, mingyeol: 20 };
+  state.vars.sincere = { seoa: 10, jiu: 5, mingyeol: 50 };
+  // jiu: 65, mingyeol: 70 → mingyeol wins
+  assert.equal(sys.bitter_candidate(), '민결');
+});
+
+test('bitter_candidate returns first on tie (mirrors Python max first-wins)', () => {
+  const { sys, state } = mkSys();
+  state.vars.like = { seoa: 50, jiu: 50, mingyeol: 0 };
+  state.vars.sincere = { seoa: 0, jiu: 0, mingyeol: 0 };
+  // seoa and jiu tied at 50; seoa comes first in HEROINES → seoa wins
+  assert.equal(sys.bitter_candidate(), '서아');
+});

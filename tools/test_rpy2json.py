@@ -136,12 +136,14 @@ class TestSpecialCalls(unittest.TestCase):
         out = convert('label x:\n    call consult_doyun()\n')
         self.assertEqual(out["nodes"][1], {"op": "consult", "who": "seoa"})
 
-    def test_reply_prompt_dropped(self):
-        # call reply_prompt(...) → 다음 마일스톤으로 보류, dead {op:call} 미발생
+    def test_reply_prompt_no_dead_call(self):
+        # Task 3: call reply_prompt(...) → inline menu (not dead {op:call})
         out = convert('label x:\n    call reply_prompt("seoa")\n    "다음"\n')
         ops = [n.get("op") for n in out["nodes"]]
         self.assertNotIn("call", ops)
-        self.assertEqual(out["nodes"][1], {"op": "say", "who": "n", "text": "다음"})
+        # nodes[1] is the inline menu; nodes[2] is the say after it
+        self.assertEqual(out["nodes"][1]["op"], "menu")
+        self.assertEqual(out["nodes"][2], {"op": "say", "who": "n", "text": "다음"})
 
 
 class TestGaugeMirrorSkip(unittest.TestCase):
@@ -220,6 +222,57 @@ class TestMulti(unittest.TestCase):
         finally:
             os.unlink(pa)
             os.unlink(pb)
+
+
+class TestReplyPromptInline(unittest.TestCase):
+    # Task 3: call reply_prompt("X") → inline menu node
+    def test_reply_prompt_inline(self):
+        out = convert('label x:\n    call reply_prompt("jiu")\n')
+        m = out['nodes'][1]
+        self.assertEqual(m['op'], 'menu')
+        self.assertEqual(len(m['choices']), 3)
+        self.assertIn('S.apply_timing("jiu", "now")', m['choices'][0]['body'][0]['expr'])
+        self.assertEqual(m['choices'][0]['body'][1], {'op': 'say', 'who': 'n', 'text': '[_r]'})
+
+    def test_reply_prompt_inline_choice_texts(self):
+        out = convert('label x:\n    call reply_prompt("seoa")\n')
+        m = out['nodes'][1]
+        texts = [ch['text'] for ch in m['choices']]
+        self.assertEqual(texts, ['바로 답한다', '조금 뜸 들였다 답한다', '지금은 못 본 척한다'])
+
+    def test_reply_prompt_inline_modes(self):
+        out = convert('label x:\n    call reply_prompt("mingyeol")\n')
+        m = out['nodes'][1]
+        modes = ['now', 'wait', 'ignore']
+        for i, mode in enumerate(modes):
+            self.assertIn(f'S.apply_timing("mingyeol", "{mode}")', m['choices'][i]['body'][0]['expr'])
+            self.assertEqual(m['choices'][i]['body'][1], {'op': 'say', 'who': 'n', 'text': '[_r]'})
+
+    def test_reply_prompt_has_prompt_text(self):
+        out = convert('label x:\n    call reply_prompt("jiu")\n')
+        m = out['nodes'][1]
+        self.assertEqual(m.get('prompt'), '답장, 어떻게 할까?')
+
+
+class TestPythonBlock(unittest.TestCase):
+    # Task 3: python: multiline block handling
+    def test_python_block_bitter(self):
+        src = 'label epi_bitter:\n    python:\n        _cand = max(HEROINES, key=lambda k: like[k] + sincere[k])\n        who_n = hname(_cand)\n'
+        out = convert(src)
+        exprs = [n.get('expr') for n in out['nodes'] if n['op'] == 'set']
+        self.assertIn('V.who_n = S.bitter_candidate()', exprs)
+        self.assertEqual(out['review'], [])
+
+    def test_python_block_simple_assignment(self):
+        src = 'label x:\n    python:\n        promise_spring = True\n'
+        out = convert(src)
+        exprs = [n.get('expr') for n in out['nodes'] if n['op'] == 'set']
+        self.assertIn('V.promise_spring = true', exprs)
+
+    def test_python_block_untranslatable_goes_to_review(self):
+        src = 'label x:\n    python:\n        some_complex_lambda = list(filter(lambda x: x > 0, data))\n'
+        out = convert(src)
+        self.assertTrue(len(out['review']) > 0)
 
 
 if __name__ == '__main__':

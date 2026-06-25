@@ -63,8 +63,7 @@ _SCENE_RE = re.compile(r'^scene\s+(?:bg\s+)?(\w+)(?:\s+with\s+(.+?))?\s*$')
 _CALL_SCREEN_RE = re.compile(r'^call\s+screen\s+(\w+)')
 # call consult_doyun("seoa") / call consult_doyun()  → consult op (who 기본 "seoa")
 _CONSULT_RE = re.compile(r'^call\s+consult_doyun\s*\(\s*(?:"((?:[^"\\]|\\.)*)")?\s*\)\s*$')
-# call reply_prompt(...) → 다음 마일스톤으로 보류 (drop)
-_REPLY_PROMPT_RE = re.compile(r'^call\s+reply_prompt\s*\(')
+_REPLY_PROMPT_RE = re.compile(r'^call\s+reply_prompt\s*\(\s*"((?:[^"\\]|\\.)*)"\s*\)\s*$')
 _CALL_RE = re.compile(r'^call\s+(\w+)\s*(?:\((.*)\))?\s*$')
 _JUMP_RE = re.compile(r'^jump\s+(\w+)\s*$')
 _MENU_CHOICE_RE = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*(?:if\s+(.+?))?\s*:\s*$')
@@ -77,7 +76,7 @@ def _unquote(s):
 
 SYS_NAMES = {'add_like','add_sincere','add_bond','hname','chapter_start','get_item','has_item',
     'item_count','use_item','give_item','was_given','unlock_station','doyun_ping','doyun_line',
-    'decide_ending','final_ending','apply_timing'}
+    'decide_ending','final_ending','apply_timing','bitter_candidate'}
 
 # ep1에 등장하는 default/런타임 변수 (기본 var_names). convert()에서 declarations로 보강.
 # (seoa_like/seoa_sinc 는 게이지 숫자 미러 표시용 → CLAUDE.md #1 따라 변환 단계에서 드롭됨)
@@ -234,6 +233,27 @@ def _is_gauge_mirror_line(c):
         return True
     return False
 
+def _build_reply_prompt_menu(who):
+    """call reply_prompt("who") → inline menu (systems_reply.rpy label reply_prompt verbatim).
+    choices: 바로 답한다→now, 조금 뜸 들였다 답한다→wait, 지금은 못 본 척한다→ignore.
+    Each body: [{set V._r = S.apply_timing("who","mode")}, {say n "[_r]"}]
+    """
+    say_r = {"op": "say", "who": "n", "text": "[_r]"}
+    modes = [
+        ("바로 답한다",           "now"),
+        ("조금 뜸 들였다 답한다", "wait"),
+        ("지금은 못 본 척한다",   "ignore"),
+    ]
+    choices = []
+    for text, mode in modes:
+        expr = f'V._r = S.apply_timing("{who}", "{mode}")'
+        choices.append({
+            "text": text,
+            "body": [{"op": "set", "expr": expr}, say_r],
+        })
+    return {"op": "menu", "prompt": "답장, 어떻게 할까?", "choices": choices}
+
+
 def classify(c, review, var_names=None, sys_names=None):
     if var_names is None: var_names = BASE_VARS
     if sys_names is None: sys_names = SYS_NAMES
@@ -262,10 +282,11 @@ def classify(c, review, var_names=None, sys_names=None):
     # 도윤 상담: call consult_doyun("who") → 엔진 내장 consult op (필수 기능)
     m = _CONSULT_RE.match(c)
     if m: return {"op": "consult", "who": m.group(1) or "seoa"}
-    # 답장 타이밍: reply_prompt 는 systems_reply.rpy(파라미터 라벨, 이 슬라이스 밖) →
-    # reply timing (reply_prompt) deferred to next milestone — see web/README
-    if _REPLY_PROMPT_RE.match(c):
-        return None
+    # 답장 타이밍: call reply_prompt("X") → 인라인 메뉴 노드 (systems_reply.rpy verbatim)
+    m = _REPLY_PROMPT_RE.match(c)
+    if m:
+        who = m.group(1)
+        return _build_reply_prompt_menu(who)
     m = _CALL_RE.match(c)
     if m:
         node = {"op": "call", "label": m.group(1)}
@@ -295,9 +316,66 @@ def parse_block(lines, i, base_indent, review, var_names=None, sys_names=None):
     block = []
     while i < len(lines) and lines[i].indent > base_indent:
         node, i = _line_to_node(lines, i, review, var_names, sys_names)
-        if node is not None:
+        if isinstance(node, list):
+            block.extend(node)
+        elif node is not None:
             block.append(node)
     return block, i
+
+# 에필로그 bitter 패턴: _cand = max(HEROINES, key=lambda ...) 뒤에 who_n = hname(_cand)
+_BITTER_MAX_RE = re.compile(r'^_cand\s*=\s*max\s*\(HEROINES\s*,\s*key\s*=\s*lambda')
+_BITTER_HNAME_RE = re.compile(r'^who_n\s*=\s*hname\s*\(_cand\)')
+
+def _parse_python_block(lines, i, review, var_names=None, sys_names=None):
+    """python: 멀티라인 블록을 파싱해 set 노드 목록을 반환.
+    - bitter 패턴(_cand=max+who_n=hname) → single {set V.who_n = S.bitter_candidate()}
+    - 일반 줄 → _convert_dollar 경유 set 노드
+    - 번역 불가 줄(lambda 등) → REVIEW
+    """
+    base_indent = lines[i].indent
+    i += 1  # 'python:' 줄 건너뜀
+    # 블록 줄 수집 (base_indent보다 더 깊은 연속 줄)
+    block_lines = []
+    while i < len(lines) and lines[i].indent > base_indent:
+        block_lines.append(lines[i].content)
+        i += 1
+
+    # bitter 패턴 감지: 연속 두 줄이 _cand = max(...) + who_n = hname(_cand)
+    bitter_nodes = _try_bitter_collapse(block_lines)
+    if bitter_nodes is not None:
+        return bitter_nodes, i
+
+    # 일반 처리: 각 줄을 _convert_dollar로 변환
+    result_nodes = []
+    for code in block_lines:
+        # 번역 불가 줄 감지: lambda 키워드 포함 또는 max(... key=lambda ...) 패턴
+        if 'lambda' in code or re.search(r'max\s*\(.*key\s*=', code):
+            review.append('python: ' + code)
+            continue
+        node = _convert_dollar(code, review, var_names, sys_names)
+        if node is not None:
+            result_nodes.append(node)
+
+    # 복수 노드를 list로 반환. _consume/parse_block에서 isinstance 체크로 extend.
+    return result_nodes, i  # list of nodes (may be empty)
+
+
+def _try_bitter_collapse(block_lines):
+    """에필로그 bitter 패턴을 감지해 단일 set 노드 목록 반환. 감지 실패 시 None."""
+    # 2줄 패턴: _cand = max(HEROINES, key=lambda ...) 다음 who_n = hname(_cand)
+    # (블록에 다른 줄이 없어야 함 — 있으면 None을 반환해 일반 경로로)
+    if len(block_lines) < 2:
+        return None
+    # 두 줄 안에 bitter 패턴이 있는지 연속으로 스캔
+    for idx in range(len(block_lines) - 1):
+        if _BITTER_MAX_RE.match(block_lines[idx]) and _BITTER_HNAME_RE.match(block_lines[idx + 1]):
+            # bitter 패턴 발견 — 이 두 줄 외의 줄이 있으면 일반 경로로 위임
+            remaining = block_lines[:idx] + block_lines[idx + 2:]
+            if remaining:
+                return None  # 복잡한 케이스 → 일반 경로
+            return [{"op": "set", "expr": "V.who_n = S.bitter_candidate()"}]
+    return None
+
 
 def _line_to_node(lines, i, review, var_names=None, sys_names=None):
     l = lines[i]
@@ -308,6 +386,9 @@ def _line_to_node(lines, i, review, var_names=None, sys_names=None):
         return _parse_menu(lines, i, review, var_names, sys_names)
     if c.startswith('if ') and c.endswith(':'):
         return _parse_if(lines, i, review, var_names, sys_names)
+    # python: 멀티라인 블록 (init python이 아닌 경우만)
+    if c == 'python:':
+        return _parse_python_block(lines, i, review, var_names, sys_names)
     node = classify(c, review, var_names, sys_names)
     return node, i + 1
 
@@ -361,7 +442,10 @@ def _parse_if_from_elif(lines, i, review, var_names=None, sys_names=None):
 
 def _consume(lines, i, nodes, review, var_names=None, sys_names=None):
     node, ni = _line_to_node(lines, i, review, var_names, sys_names)
-    if node is not None:
+    if isinstance(node, list):
+        # python: block returns a list of nodes → extend
+        nodes.extend(node)
+    elif node is not None:
         nodes.append(node)
     return node, ni
 

@@ -81,6 +81,20 @@ export function makeSystems(state, { onNotify = () => {} } = {}) {
       return sys.decide_ending();
     },
 
+    bitter_candidate() {
+      // Mirror epilogue lambda: max(HEROINES, key=lambda k: like[k]+sincere[k])
+      // On ties, first key in HEROINES wins (mirrors Python's max() first-wins behaviour).
+      const keys = Object.keys(HEROINES);
+      let best = keys[0];
+      for (let i = 1; i < keys.length; i++) {
+        const k = keys[i];
+        if ((v.like[k] || 0) + (v.sincere[k] || 0) > (v.like[best] || 0) + (v.sincere[best] || 0)) {
+          best = k;
+        }
+      }
+      return sys.hname(best);
+    },
+
     apply_timing(who, mode) {
       const tables = {
         seoa: { now: [['like', 10], '오 답장 빠르네 ㅋㅋ 그런 거 맘에 들어, 라며 서아가 좋아했다.'],
