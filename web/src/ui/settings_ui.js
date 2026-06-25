@@ -86,6 +86,21 @@ export function makeSettingsUI(root, { settings, audio }) {
           ${_reset('brightness', '밝기')}
         </div>
 
+        <div class="st-row st-row--vol">
+          <label class="st-label" for="st-textspeed">타이핑</label>
+          <div class="st-slider-wrap ${s.textInstant ? 'is-off' : ''}">
+            <input class="st-slider" id="st-textspeed" type="range" min="0" max="100" value="${esc(String(s.textSpeed))}" ${s.textInstant ? 'disabled' : ''}>
+            <span class="st-val">${esc(String(s.textSpeed))}</span>
+          </div>
+          ${_reset('textSpeed', '타이핑 속도')}
+        </div>
+
+        <div class="st-row st-row--toggle">
+          <label class="st-label" for="st-textinstant">즉시표시</label>
+          ${_toggle('st-textinstant', '즉시표시 켜기/끄기', s.textInstant)}
+          ${_reset('textInstant', '즉시표시')}
+        </div>
+
         <div class="st-row st-row--toggle">
           <label class="st-label" for="st-vibration">진동</label>
           ${_toggle('st-vibration', '진동 켜기/끄기', s.vibration)}
@@ -146,6 +161,24 @@ export function makeSettingsUI(root, { settings, audio }) {
         const v = Number(brightSlider.value) / 100;
         settings.set('brightness', v);  // applyBrightness called inside set()
         if (brightVal) brightVal.textContent = brightSlider.value;
+      });
+    }
+
+    // 타이핑 속도 slider (0..100)
+    const tsSlider = panel.querySelector('#st-textspeed');
+    const tsVal    = panel.querySelector('#st-textspeed + .st-val');
+    if (tsSlider) {
+      tsSlider.addEventListener('input', () => {
+        settings.set('textSpeed', Number(tsSlider.value));
+        if (tsVal) tsVal.textContent = tsSlider.value;
+      });
+    }
+    // 즉시표시 토글 — 타이핑 끄고 전체 즉시 표시
+    const tiToggle = panel.querySelector('#st-textinstant');
+    if (tiToggle) {
+      tiToggle.addEventListener('change', () => {
+        settings.set('textInstant', tiToggle.checked);
+        render();   // 속도 슬라이더 dim/enable 반영
       });
     }
 

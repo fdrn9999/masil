@@ -4,6 +4,7 @@ import { makeEvaluator } from '../eval_expr.js';
 import { Engine } from '../engine.js';
 import { MASIL, CHAT_AVATARS } from '../theme.js';
 import { makeStage } from './stage.js';
+import { makeTypewriter } from './typewriter.js';
 import { makeChat } from './chat.js';
 import { makeMenu } from './menu.js';
 import { makeOverlay } from './overlay.js';
@@ -97,7 +98,8 @@ async function boot() {
   // Playback controller (skip/auto mode + dialogue history + rollback snapshots).
   // Passed into stage + chat so they record history (used by save previews / backlog / Task-4 skip-auto).
   const playback = makePlayback();
-  const stage = makeStage(root, script.backgrounds || {}, playback);
+  const typewriter = makeTypewriter(settings);   // 타이핑(텍스트 스크롤) — settings 속도/즉시표시 반영
+  const stage = makeStage(root, script.backgrounds || {}, playback, typewriter);
   const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES, audio, playback });
   const menu = makeMenu(root, { audio });
 

@@ -1,8 +1,9 @@
 import { BG_INFO } from '../theme.js';
-import { renderTags } from './tags.js';
+import { makeTypewriter } from './typewriter.js';
 
-export function makeStage(root, backgrounds, playback = null) {
+export function makeStage(root, backgrounds, playback = null, typewriter = null) {
   const game = root;                       // #game (unified advance surface)
+  const tw = typewriter || makeTypewriter(null);   // 폴백: 설정 없으면 기본 속도 타이핑
   const stage = root.querySelector('#stage');
   const box = root.querySelector('#textbox');
   const nameEl = root.querySelector('#name');
@@ -86,43 +87,59 @@ export function makeStage(root, backgrounds, playback = null) {
         nameEl.textContent = a.name || '';
         nameEl.style.color = legibleNameColor(a.color);
         nameEl.style.display = a.name ? 'block' : 'none';
-        lineEl.innerHTML = renderTags(a.text);
 
-        let resolved = false;
-        let timer = null;
-        const startedAt = Date.now();
+        let resolved = false, timer = null;
+        let typed = false, autoNw = false, autoT0 = null;
+
+        // Start the typewriter (honors {w}/{cps}/{size}/{b}/{i}). Skip → reveal at once.
+        const ctrl = tw.type(lineEl, a.text);
+        if (playback && playback.isSkip()) ctrl.complete();
+        ctrl.done.then(res => { typed = true; autoNw = !!(res && res.autoAdvance); autoT0 = null; });
 
         function cleanup() {
           if (timer !== null) { clearTimeout(timer); timer = null; }
           game.removeEventListener('click', onAdv);
           document.removeEventListener('keydown', onKey);
           hideCue();
+          ctrl.cancel();
         }
-        function finish(fromClick) {
+        function finish(fromUser) {
           if (resolved) return;
           resolved = true;
           cleanup();
-          // A deliberate click during skip/auto stops it (and advances).
-          if (fromClick && playback && (playback.isSkip() || playback.isAuto())) {
+          // A deliberate tap during skip/auto stops it (and advances).
+          if (fromUser && playback && (playback.isSkip() || playback.isAuto())) {
             playback.setMode('normal');
           }
           resolve();
         }
+        // Classic VN: while typing, a tap completes the line ("띡"); once shown, a tap advances.
+        function advanceOrComplete() {
+          if (!typed) { ctrl.complete(); return; }
+          finish(true);
+        }
         function onAdv(e) {
           if (isUiClick(e.target)) return;   // taps on UI layers don't advance
-          finish(true);
+          advanceOrComplete();
         }
         function onKey(e) {
           if (!['Enter', ' '].includes(e.key)) return;
-          finish(true);
+          e.preventDefault();                // 포커스된 버튼 우발 재활성화 방지
+          advanceOrComplete();
         }
-        // tick re-reads playback mode each cycle → toggling 오토/스킵 mid-line takes effect.
+        // single ticker: skip-during-typing → complete; then auto/skip/cue while waiting.
         function tick() {
           if (resolved) return;
+          if (!typed) {
+            if (playback && playback.isSkip()) ctrl.complete();
+            timer = setTimeout(tick, 80); return;
+          }
+          if (autoNw) { hideCue(); finish(false); return; }                 // {nw}
           if (playback && playback.isSkip()) { hideCue(); finish(false); return; }
           if (playback && playback.isAuto()) {
             hideCue();
-            if (Date.now() - startedAt >= playback.autoDelay(a.text)) { finish(false); return; }
+            if (autoT0 === null) autoT0 = Date.now();
+            if (Date.now() - autoT0 >= playback.autoDelay(a.text)) { finish(false); return; }
           } else {
             showCue();   // normal: invite a tap
           }
@@ -131,24 +148,46 @@ export function makeStage(root, backgrounds, playback = null) {
 
         game.addEventListener('click', onAdv);
         document.addEventListener('keydown', onKey);
-        tick();   // skip finishes immediately; normal shows cue; auto counts down
+        tick();
       });
     },
 
-    // Used by view.pause in NORMAL mode (skip/auto fast-forward handled in view_dom).
+    // Used by view.pause. Polls mode each tick so 오토/스킵 토글이 대기 중에도 먹는다.
     waitAdvance() {
       return new Promise(resolve => {
-        showCue();
-        function done() {
+        let resolved = false, timer = null, autoT0 = null;
+        function cleanup() {
+          if (timer !== null) { clearTimeout(timer); timer = null; }
           game.removeEventListener('click', onAdv);
           document.removeEventListener('keydown', onKey);
           hideCue();
+        }
+        function finish(fromUser) {
+          if (resolved) return;
+          resolved = true;
+          cleanup();
+          if (fromUser && playback && (playback.isSkip() || playback.isAuto())) {
+            playback.setMode('normal');
+          }
           resolve();
         }
-        function onAdv(e) { if (isUiClick(e.target)) return; done(); }
-        function onKey(e) { if (!['Enter', ' '].includes(e.key)) return; done(); }
+        function onAdv(e) { if (isUiClick(e.target)) return; finish(true); }
+        function onKey(e) { if (!['Enter', ' '].includes(e.key)) return; e.preventDefault(); finish(true); }
+        function tick() {
+          if (resolved) return;
+          if (playback && playback.isSkip()) { hideCue(); finish(false); return; }
+          if (playback && playback.isAuto()) {
+            hideCue();
+            if (autoT0 === null) autoT0 = Date.now();
+            if (Date.now() - autoT0 >= 900) { finish(false); return; }
+          } else {
+            showCue();
+          }
+          timer = setTimeout(tick, 80);
+        }
         game.addEventListener('click', onAdv);
         document.addEventListener('keydown', onKey);
+        tick();
       });
     },
   };

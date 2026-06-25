@@ -10,6 +10,8 @@ const DEFAULTS = {
   sfxOn:      true,   // 사운드 on/off
   sfx:        0.9,
   brightness: 1.0,
+  textSpeed:  55,     // 타이핑 속도 0..100 (느림→빠름)
+  textInstant: false, // 타이핑 끄고 즉시 전체 표시
   vibration:  true,
   assetHints: true,   // 배경 에셋 파일명 칩 표시 (에셋 완성 후 끄면 됨)
 };

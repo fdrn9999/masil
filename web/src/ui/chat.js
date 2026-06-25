@@ -67,13 +67,34 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
     },
     waitTap() {
       return new Promise(resolve => {
-        if (cueEl) cueEl.classList.remove('hidden');   // tap-to-continue cue during chat
-        const onTap = () => {
+        let resolved = false, timer = null, autoT0 = null;
+        const show = () => { if (cueEl) cueEl.classList.remove('hidden'); };
+        const hide = () => { if (cueEl) cueEl.classList.add('hidden'); };
+        function cleanup() {
+          if (timer !== null) { clearTimeout(timer); timer = null; }
           wrap.removeEventListener('click', onTap);
-          if (cueEl) cueEl.classList.add('hidden');
-          resolve();
-        };
+          document.removeEventListener('keydown', onKey);
+          hide();
+        }
+        function finish() { if (resolved) return; resolved = true; cleanup(); resolve(); }
+        function onTap() { finish(); }
+        function onKey(e) { if (!['Enter', ' '].includes(e.key)) return; e.preventDefault(); finish(); }
+        // poll mode so 오토/스킵 토글이 채팅 대기 중에도 진행시킨다 (say와 동일)
+        function tick() {
+          if (resolved) return;
+          if (playback && playback.isSkip()) { hide(); finish(); return; }
+          if (playback && playback.isAuto()) {
+            hide();
+            if (autoT0 === null) autoT0 = Date.now();
+            if (Date.now() - autoT0 >= 700) { finish(); return; }
+          } else {
+            show();   // tap-to-continue cue during chat
+          }
+          timer = setTimeout(tick, 80);
+        }
         wrap.addEventListener('click', onTap);
+        document.addEventListener('keydown', onKey);
+        tick();
       });
     },
   };
