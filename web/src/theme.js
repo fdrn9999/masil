@@ -46,3 +46,31 @@ export const MASIL = {
   recv_bubble: '#ffffff', recv_txt: '#1c1f2a', send_bubble: '#6c7cf0', send_txt: '#ffffff',
   name_txt: '#3b4257', time_txt: '#8a90a3', read_txt: '#6c7cf0', avatar_bg: '#c3c9d9', typing: '#9aa0b3',
 };
+
+// 배경 에셋 힌트 — 각 bg 키의 한국어 설명. 예상 이미지 파일 = images/bg/bg_<키>.png
+// real:false = 연출용(흑막/플래시) → 에셋 불필요, 힌트 칩 미표시.
+export const BG_INFO = {
+  room:        { desc: '잠실 자취방 (밤)' },
+  room_dawn:   { desc: '자취방 (새벽)' },
+  room_later:  { desc: '시간이 지난 방 (밤)' },
+  sinchon:     { desc: '신촌 연세로 (낮)' },
+  cafe:        { desc: '카페' },
+  cafe_in:     { desc: '카페 내부' },
+  boardcafe:   { desc: '보드게임/PC 느낌' },
+  alley:       { desc: '골목 / 포장마차' },
+  mullae_alley:{ desc: '문래 창작촌 골목' },
+  pojang:      { desc: '문래 골목 조용한 술집' },
+  konkuk:      { desc: '건대 먹자골목 (시끌)' },
+  seongsu:     { desc: '성수 카페거리 (낮/노을)' },
+  seoulsup:    { desc: '서울숲' },
+  han_night:   { desc: '한강 (밤)' },
+  han_river:   { desc: '한강 (노을→밤)' },
+  street_n:    { desc: '밤거리' },
+  street_night:{ desc: '밤거리' },
+  gangnam:     { desc: '강남 밤거리 (네온)' },
+  rooftop:     { desc: '옥상 바' },
+  doyun_room:  { desc: '도윤의 방' },
+  window_dusk: { desc: '창가, 노을' },
+  black:       { desc: '암전', real: false },
+  white:       { desc: '흰 플래시', real: false },
+};

@@ -37,6 +37,7 @@ export function makeSettingsUI(root, { settings, audio }) {
     // brightness 0.6..1.2 → slider 60..120
     const brightVal = Math.round(s.brightness * 100);
     const vibChecked = s.vibration ? 'checked' : '';
+    const ahChecked  = s.assetHints ? 'checked' : '';
 
     return `
       <div class="st-panel" role="dialog" aria-label="설정">
@@ -73,6 +74,15 @@ export function makeSettingsUI(root, { settings, audio }) {
           <label class="st-label" for="st-vibration">진동</label>
           <label class="st-toggle" aria-label="진동 켜기/끄기">
             <input class="st-toggle__input" id="st-vibration" type="checkbox" ${vibChecked}>
+            <span class="st-toggle__track"></span>
+            <span class="st-toggle__thumb"></span>
+          </label>
+        </div>
+
+        <div class="st-row st-row--toggle">
+          <label class="st-label" for="st-asset-hints">에셋 힌트</label>
+          <label class="st-toggle" aria-label="에셋 힌트 켜기/끄기">
+            <input class="st-toggle__input" id="st-asset-hints" type="checkbox" ${ahChecked}>
             <span class="st-toggle__track"></span>
             <span class="st-toggle__thumb"></span>
           </label>
@@ -135,6 +145,14 @@ export function makeSettingsUI(root, { settings, audio }) {
         const on = vibToggle.checked;
         settings.set('vibration', on);
         if (on) audio.vibrate(20);  // test buzz when turned ON
+      });
+    }
+
+    // 에셋 힌트 토글 — 배경 이미지 파일명 칩 표시/숨김
+    const ahToggle = panel.querySelector('#st-asset-hints');
+    if (ahToggle) {
+      ahToggle.addEventListener('change', () => {
+        settings.set('assetHints', ahToggle.checked);
       });
     }
 
