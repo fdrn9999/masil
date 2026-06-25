@@ -50,10 +50,11 @@ export function makePlayback(opts = {}) {
 
     // --- rollback snapshots ---
     pushSnapshot(snap) {
-      // Deep-clone vars so later mutation of the original doesn't corrupt the snapshot
+      // Deep-clone vars AND pos so later mutation of the originals (e.g. a live
+      // engine position whose callStack array changes) can't corrupt the snapshot.
       const stored = {
         vars: JSON.parse(JSON.stringify(snap.vars)),
-        pos: snap.pos,
+        pos: JSON.parse(JSON.stringify(snap.pos)),
       };
       _snapshots.push(stored);
       if (_snapshots.length > SNAPSHOT_LIMIT) _snapshots.shift();
