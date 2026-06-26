@@ -23,8 +23,10 @@
     <div id="toast"></div>
     <!-- "tap/click to continue" blinking cue — toggled by stage/chat -->
     <div id="advance-cue" class="hidden">▼</div>
-    <!-- Title / main-menu layer — created and managed by title.js -->
-    <div id="title-layer"></div>
+    <!-- Title / main-menu layer — created and managed by title.js.
+         hidden by default so RESUME(퀵로드/이어하기, 타이틀 건너뜀) 시 빈 레이어가
+         전화면을 덮어 입력을 막지 않게 한다. _showTitle()이 title.show()로 띄움. -->
+    <div id="title-layer" class="hidden"></div>
   </div>
   <script type="module" src="src/ui/view_dom.js"></script>
 </body>

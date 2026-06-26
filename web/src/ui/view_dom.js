@@ -58,7 +58,7 @@ const SUPPLEMENT_DEFAULTS = {
 async function boot() {
   const root = document.getElementById('game');
 
-  // ── 진단 계측: 치명 오류 노출(비차단) + 탭 도달 카운터 ──
+  // ── 방어: 치명 오류를 화면 상단에 비차단으로 노출 (무성 멈춤 방지) ──
   function showFatal(msg) {
     let el = document.getElementById('__fatal');
     if (!el) {
@@ -72,15 +72,6 @@ async function boot() {
   }
   window.addEventListener('error', e => showFatal('JS오류: ' + e.message + ' @ ' + ((e.filename || '').split('/').pop()) + ':' + e.lineno + ':' + e.colno));
   window.addEventListener('unhandledrejection', e => showFatal('Promise오류: ' + ((e.reason && (e.reason.stack || e.reason.message)) || e.reason)));
-  // 탭이 페이지에 닿는지 카운터 (안 늘면 = 페이지 멈춤/전면 차단, 늘면 = 진행 핸들러 문제)
-  let __taps = 0;
-  const __tc = document.createElement('div');
-  __tc.id = '__tapcount';
-  __tc.style.cssText = 'position:fixed;top:3px;right:3px;background:#2c3e50;color:#fff;font:11px monospace;padding:2px 7px;z-index:999998;pointer-events:none;border-radius:5px;opacity:.85';
-  __tc.textContent = 'tap:0';
-  (document.body || document.documentElement).appendChild(__tc);
-  document.addEventListener('click', () => { __taps++; __tc.textContent = 'tap:' + __taps; }, true);
-  document.addEventListener('touchend', () => { __taps++; __tc.textContent = 'tap:' + __taps; }, true);
 
   // ── Check for a reload-resume flag (set by requestResume / slot load) ──────
   // Must be read BEFORE title is shown so we can skip it and resume directly.
@@ -342,6 +333,9 @@ async function boot() {
     if (resumedPos) {
       mountGameButtons();
       gameStarted = true;
+      // 타이틀을 건너뛰므로 #title-layer가 빈 채로 전화면을 덮어 입력을 막지 않게 숨김
+      // (index.html에서 기본 hidden이지만 안전장치).
+      const _tl = root.querySelector('#title-layer'); if (_tl) _tl.classList.add('hidden');
       try {
         reconstructContext(resumedPos.ip);    // 배경·채팅 컨텍스트 복원 (빈 화면 방지)
         await engine.resume(resumedPos);
