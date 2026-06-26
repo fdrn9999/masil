@@ -40,6 +40,7 @@ const SUPPLEMENT_DEFAULTS = {
   show_gauges:        false,
   mc_name:            '진호',
   ep4_choice:         '',
+  honest_doyun:           false,   // Ep.1 도윤 인터루드 '솔직히' 선택 → wrap 콜백
   // ep2-4 vars (also in story.defaults, but listed here as safety net)
   doyun_secret_seen:      false,
   meet_loc:               '',
