@@ -96,12 +96,29 @@ body { display: flex; align-items: center; justify-content: center; }
   background: transparent;
 }
 
+/* ── 캐릭터 스탠딩 스프라이트 레이어 (sprites.js) — 배경 위, 대사창/채팅 아래 ── */
+#sprite-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;                    /* 위: #chat(50)·#textbox·#choices / 아래: #stage 배경 */
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: auto 92%;     /* 화면 높이의 92% — 발은 바닥, 하단부는 대사창 뒤로 */
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .4s ease, transform .4s ease;
+}
+#sprite-layer.shown { opacity: 1; transform: translateY(0); }
+@media (orientation: portrait) { #sprite-layer { background-size: auto 86%; } }
+
 .hidden { display: none !important; }
 
 /* ── Textbox (대사창) — pastel soft card ── */
 #textbox {
   position: absolute;
   left: 0; right: 0; bottom: 0;
+  z-index: 10;                     /* 스탠딩 스프라이트(z5) 위 — 대사창이 인물 하반신을 덮게 */
   min-height: 26%;
   max-height: 56%;                 /* 긴 독백도 잘리지 않게: 넘치면 내부 스크롤 */
   overflow-y: auto;

@@ -75,3 +75,13 @@ export const BG_INFO = {
   black:       { desc: '암전', real: false },
   white:       { desc: '흰 플래시', real: false },
 };
+
+// 캐릭터 스탠딩 스프라이트 — 화자 who(s/j/m/d) → 캐릭터/감정. images/sprites/<char>_<emotion>.webp
+// def = story 노드에 face 없을 때 기본 감정. mc(나)·n(나레이션)은 스프라이트 없음(현재 화자 유지).
+export const SPRITE_BASE = 'images/sprites/';
+export const SPRITES = {
+  s: { char: 'seoa',     def: 'base',   emotions: ['base', 'sad', 'sincere', 'teasing'] },
+  j: { char: 'jiu',      def: 'base',   emotions: ['base', 'lonely', 'playful', 'shy'] },
+  m: { char: 'mingyeol', def: 'base',   emotions: ['base', 'sincere', 'wavering'] },
+  d: { char: 'doyun',    def: 'normal', emotions: ['cry', 'drunk', 'normal', 'serious', 'smile'] },
+};

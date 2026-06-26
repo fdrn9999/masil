@@ -2,8 +2,9 @@ import { GameState } from '../state.js';
 import { makeSystems } from '../systems.js';
 import { makeEvaluator } from '../eval_expr.js';
 import { Engine } from '../engine.js';
-import { MASIL, CHAT_AVATARS } from '../theme.js';
+import { MASIL, CHAT_AVATARS, SPRITES, SPRITE_BASE } from '../theme.js';
 import { makeStage } from './stage.js';
+import { makeSprites } from './sprites.js';
 import { makeTypewriter } from './typewriter.js';
 import { makeChat } from './chat.js';
 import { makeMenu } from './menu.js';
@@ -120,6 +121,7 @@ async function boot() {
   const playback = makePlayback();
   const typewriter = makeTypewriter(settings);   // 타이핑(텍스트 스크롤) — settings 속도/즉시표시 반영
   const stage = makeStage(root, script.backgrounds || {}, playback, typewriter);
+  const sprites = makeSprites(root, { SPRITES, base: SPRITE_BASE });
   const chat = makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES, audio, playback });
   const menu = makeMenu(root, { audio });
 
@@ -131,16 +133,19 @@ async function boot() {
   // view sink — delegates every engine op to the right UI module
   const view = {
     async scene(a) {
+      sprites.hide();          // 장소가 바뀌면 스탠딩은 내림(다음 say가 다시 띄움)
       stage.scene(a);
     },
     async say(a) {
       // Push rollback snapshot BEFORE advancing (preserves pre-line state)
       playback.pushSnapshot({ vars: state.vars, pos: engine.position() });
+      if (!isChatOpen) sprites.show(a.who, a.face);   // 화자 캐릭터 스탠딩(채팅 중엔 X)
       await stage.say(a);
       autosave();
     },
     async chatOpen(a) {
       isChatOpen = true;
+      sprites.hide();          // 마실 채팅 화면에선 스탠딩 숨김
       chat.open(a);
     },
     async chatClose() {

@@ -56,7 +56,7 @@ export class Engine {
       case 'scene': await v.scene({ bg: node.bg, with: node.with }); break;
       case 'say': {
         const c = this.characters[node.who] || {};
-        await v.say({ who: node.who, name: c.name, color: node.color || c.color, text: this.interp(node.text) });
+        await v.say({ who: node.who, name: c.name, color: node.color || c.color, text: this.interp(node.text), face: node.face });
         break;
       }
       case 'chat_open': await v.chatOpen({ room: this.interp(node.room) }); break;
