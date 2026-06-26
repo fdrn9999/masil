@@ -19,7 +19,7 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
         el.style.setProperty('background-image', 'url(' + JSON.stringify(file) + ')');
       } }
     else initial();
-    function initial() { el.style.backgroundImage = 'none'; el.style.background = CHAT_AVATARS[name] || MASIL.avatar_bg; el.textContent = (name || '?')[0]; }
+    function initial() { el.style.backgroundImage = 'none'; el.style.background = CHAT_AVATARS[name] || MASIL.avatar_bg; el.textContent = [...(name || '?')][0]; }
     return el;
   }
   function scrollBottom() { log.scrollTop = log.scrollHeight; }
@@ -27,9 +27,9 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
   return {
     open({ room }) {
       wrap.classList.remove('hidden'); minutes = 0;
-      wrap.innerHTML = `<div class="topbar"><span style="font-size:28px">‹</span>
+      wrap.innerHTML = `<div class="topbar"><span aria-hidden="true" style="font-size:28px;opacity:.35;pointer-events:none">‹</span>
         <div><div class="room">${escapeHtml(room)}</div><div class="sub"><span class="dot"></span>온라인</div></div></div>
-        <div class="log"></div>`;
+        <div class="log" tabindex="0" role="log" aria-live="polite"></div>`;
       log = wrap.querySelector('.log');
     },
     close() { wrap.classList.add('hidden'); },
@@ -47,7 +47,7 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
         const delay = (playback && playback.isSkip()) ? 60 : 800;
         setTimeout(() => {
           col.innerHTML = `<div class="sender">${escapeHtml(name || '')}</div>
-            <div class="bubble">${renderTags(text)}</div><div class="meta">${fmtTime()}</div>`;
+            <div class="bubble">${renderTags(text)}</div><div class="meta"><span class="time">${fmtTime()}</span></div>`;
           scrollBottom();
           if (audio) { audio.playSfx('se_msg_recv'); audio.vibrate(10); }  // mobile messenger feel
           resolve();
@@ -60,7 +60,7 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
 
       const row = document.createElement('div'); row.className = 'bubble-row right';
       row.innerHTML = `<div class="bubble">${renderTags(text)}</div>
-        <div class="meta"><span class="read">읽음</span><br>${fmtTime()}</div>`;
+        <div class="meta"><span class="read">읽음</span><span class="time">${fmtTime()}</span></div>`;
       log.appendChild(row); scrollBottom();
       if (audio) audio.playSfx('se_msg_send');
       return Promise.resolve();

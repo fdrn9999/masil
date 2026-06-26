@@ -101,6 +101,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
         nameEl.textContent = a.name || '';
         nameEl.style.color = legibleNameColor(a.color);
         nameEl.style.display = a.name ? 'block' : 'none';
+        box.classList.toggle('narration', !a.name);   // 나레이션은 기울임+톤으로 대사와 구분(CSS)
 
         let resolved = false, timer = null;
         let typed = false, autoNw = false, autoT0 = null;
@@ -130,7 +131,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
         }
         // Classic VN: while typing, a tap completes the line ("띡"); once shown, a tap advances.
         function advanceOrComplete() {
-          if (!typed) { ctrl.complete(); return; }
+          if (!typed) { ctrl.complete(); showCue(); return; }   // 완성 즉시 ▼ 표시(피드백 lag 제거)
           finish(true);
         }
         function onAdv(e) {

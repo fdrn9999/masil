@@ -67,6 +67,14 @@ export function makeSaveLoad(root, { state, engine, playback, audio }) {
   let _keyHandler = null;
   let _resolve = null;
   let _mode = 'save';
+  let _armed = null, _armTimer = null;   // 채워진 슬롯 덮어쓰기 확인(tap-to-confirm) armed 키
+
+  function clearArm() {
+    if (_armTimer) { clearTimeout(_armTimer); _armTimer = null; }
+    _armed = null;
+    const c = layerEl.querySelector('.sl-card--confirm');
+    if (c) c.classList.remove('sl-card--confirm');
+  }
 
   // ── buildMeta: exported so view_dom can reuse ──────────────────────────────
   function buildMeta() {
@@ -91,7 +99,7 @@ export function makeSaveLoad(root, { state, engine, playback, audio }) {
       return `
         <div class="sl-card sl-card--empty" data-slot="${isQuick ? 'quick' : index}" data-filled="0">
           <div class="sl-card__slot-num">${esc(slotLabel)}</div>
-          <div class="sl-card__empty">비어있음</div>
+          <div class="sl-card__empty">${_mode === 'save' ? '+ 여기에 저장' : '비어있음'}</div>
         </div>`;
     }
 
@@ -164,7 +172,19 @@ export function makeSaveLoad(root, { state, engine, playback, audio }) {
     const isFilled = cardEl.dataset.filled === '1';
 
     if (_mode === 'save') {
-      // Always save (overwrite if filled — simple approach with toast feedback)
+      const armKey = isQuick ? 'quick' : slotKey;
+      // 채워진 슬롯 덮어쓰기는 되돌릴 수 없으므로 1탭 확인. 빈 슬롯은 즉시 저장.
+      if (isFilled && _armed !== armKey) {
+        clearArm();
+        _armed = armKey;
+        cardEl.classList.add('sl-card--confirm');
+        overlay_toast('다시 탭하면 덮어써요');
+        _armTimer = setTimeout(() => {
+          if (_armed === armKey) { _armed = null; cardEl.classList.remove('sl-card--confirm'); }
+        }, 2500);
+        return;
+      }
+      clearArm();
       const pos = engine.position();
       const meta = buildMeta();
       if (isQuick) {
@@ -222,6 +242,7 @@ export function makeSaveLoad(root, { state, engine, playback, audio }) {
     // Look for toast el injected by view_dom
     const toastEl = document.getElementById('toast');
     if (!toastEl) return;
+    while (toastEl.children.length >= 3) toastEl.firstElementChild.remove();   // 스택 도배 방지
     const t = document.createElement('div');
     t.className = 'toast-item';
     t.textContent = text;
@@ -235,6 +256,7 @@ export function makeSaveLoad(root, { state, engine, playback, audio }) {
     return new Promise(resolve => {
       _resolve = resolve;
       layerEl.classList.remove('hidden');
+      layerEl.classList.toggle('sl-mode-save', _mode === 'save');   // 저장 모드 빈 슬롯 활성화(CSS)
       layerEl.innerHTML = buildPanel();
       wirePanel();
 
@@ -246,6 +268,7 @@ export function makeSaveLoad(root, { state, engine, playback, audio }) {
 
   // ── close ─────────────────────────────────────────────────────────────────
   function close() {
+    clearArm();
     if (_keyHandler) {
       document.removeEventListener('keydown', _keyHandler);
       _keyHandler = null;

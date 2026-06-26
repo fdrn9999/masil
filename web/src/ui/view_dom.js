@@ -358,6 +358,8 @@ async function boot() {
       hasContinue,
 
       onNew: async () => {
+        // 이어할 지점이 있을 때만 확인 (onTitle과 일관 — 진행 손실 방지)
+        if (hasContinue && !confirm('새로 시작하면 이어할 지점이 사라질 수 있어요. 새로 시작할까요?')) return;
         // Bump play_count only for a new playthrough.
         state.persistent.play_count = (state.persistent.play_count || 0) + 1;
         state.savePersistent();

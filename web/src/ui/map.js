@@ -200,7 +200,7 @@ export function makeMap(root, { sys, state, audio = null }) {
               <span class="map-panel__badge">2</span>
               <span class="map-panel__title">2호선</span>
             </div>
-            <div class="map-panel__subtitle">가고 싶은 역을 선택하세요</div>
+            <div class="map-panel__subtitle">이야기를 따라 이동해요</div>
           </div>
           ${legendHtml}
           <div class="map-panel__svg-wrap">
