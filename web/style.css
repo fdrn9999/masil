@@ -123,7 +123,7 @@ body { display: flex; align-items: center; justify-content: center; }
   max-height: 56%;                 /* 긴 독백도 잘리지 않게: 넘치면 내부 스크롤 */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  background: rgba(255,247,240,.93);
+  background: linear-gradient(180deg, rgba(255,247,240,.95) 0%, rgba(255,247,240,.99) 60%);  /* 거의 불투명 — 스프라이트 '유령 다리' 비침 제거(blur 프로스트 유지) */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 5% 6% 6%;
@@ -266,8 +266,11 @@ body { display: flex; align-items: center; justify-content: center; }
 
 /* Bubble rows */
 .bubble-row { display: flex; gap: 8px; align-items: flex-end; max-width: 82%; }
-.bubble-row.left  { align-self: flex-start; }
-.bubble-row.right { align-self: flex-end; flex-direction: row-reverse; }
+.bubble-row.left  { align-self: flex-start; animation: bubble-in .22s ease-out both; }
+.bubble-row.right { align-self: flex-end; flex-direction: row-reverse; animation: bubble-in-send .24s cubic-bezier(.2,.9,.3,1.1) both; }
+/* 등장 연출 — 수신(타이핑 점→말풍선)과 발신(슬라이드인) 비대칭 해소 */
+@keyframes bubble-in      { from { opacity: 0; transform: translateY(6px); }  to { opacity: 1; transform: none; } }
+@keyframes bubble-in-send { from { opacity: 0; transform: translateY(6px) translateX(10px); } to { opacity: 1; transform: none; } }
 
 /* Avatar: Jua initial, character accent bg, soft shadow + inset highlight */
 .avatar {
@@ -318,6 +321,7 @@ body { display: flex; align-items: center; justify-content: center; }
 }
 
 /* Typing dots: pastel tone animation */
+.bubble.typing { min-height: 1.2em; display: flex; align-items: center; }   /* 점→말풍선 교체 2차 점프 폭 축소 */
 .typing span {
   display: inline-block; width: 7px; height: 7px; margin: 0 2px;
   border-radius: 50%; background: var(--lav-deep);

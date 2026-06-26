@@ -109,7 +109,11 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
         // Start the typewriter (honors {w}/{cps}/{size}/{b}/{i}). Skip → reveal at once.
         const ctrl = tw.type(lineEl, a.text);
         if (playback && playback.isSkip()) ctrl.complete();
-        ctrl.done.then(res => { typed = true; autoNw = !!(res && res.autoAdvance); autoT0 = null; });
+        ctrl.done.then(res => {
+          typed = true; autoNw = !!(res && res.autoAdvance); autoT0 = null;
+          if (timer !== null) { clearTimeout(timer); timer = null; }
+          tick();   // 타이핑 자연 완료 즉시 ▼/오토 판정(80ms 폴링 지연 제거)
+        });
 
         function cleanup() {
           if (timer !== null) { clearTimeout(timer); timer = null; }

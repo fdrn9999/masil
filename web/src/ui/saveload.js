@@ -246,8 +246,10 @@ export function makeSaveLoad(root, { state, engine, playback, audio }) {
     const t = document.createElement('div');
     t.className = 'toast-item';
     t.textContent = text;
+    t.classList.add('toast-enter');                                  // 엔진 토스트와 동일 페이드
     toastEl.appendChild(t);
-    setTimeout(() => t.remove(), 2500);
+    requestAnimationFrame(() => t.classList.remove('toast-enter'));
+    setTimeout(() => { t.classList.add('toast-leaving'); setTimeout(() => t.remove(), 260); }, 3000);
   }
 
   // ── open ──────────────────────────────────────────────────────────────────
