@@ -54,6 +54,7 @@ export class Engine {
     switch (node.op) {
       case 'label': return undefined;
       case 'scene': await v.scene({ bg: node.bg, with: node.with }); break;
+      case 'sprite': if (v.sprite) await v.sprite({ who: node.who, face: node.face, img: node.img, hide: node.hide }); break;
       case 'say': {
         const c = this.characters[node.who] || {};
         await v.say({ who: node.who, name: c.name, color: node.color || c.color, text: this.interp(node.text), face: node.face });

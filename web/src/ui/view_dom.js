@@ -136,6 +136,11 @@ async function boot() {
       sprites.hide();          // 장소가 바뀌면 스탠딩은 내림(다음 say가 다시 띄움)
       stage.scene(a);
     },
+    async sprite(a) {          // story 명시 교체: {img} 직접 / {who,face} 레지스트리 / {hide}
+      if (a.hide) sprites.hide();
+      else if (a.img) sprites.showImage(a.img);
+      else sprites.show(a.who, a.face);
+    },
     async say(a) {
       // Push rollback snapshot BEFORE advancing (preserves pre-line state)
       playback.pushSnapshot({ vars: state.vars, pos: engine.position() });
