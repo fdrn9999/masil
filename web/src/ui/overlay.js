@@ -48,6 +48,18 @@ export function makeOverlay(root) {
           <button class="close result-card__close">확인 ♡</button>
         </div>`);
       }
+      if (name === 'episode_card') {
+        const t    = escapeHtml(title != null ? title : '');
+        const sub  = escapeHtml((type && type[0] != null) ? type[0] : '');
+        const save = escapeHtml((type && type[1] != null) ? type[1] : '진행이 저장되었어요');
+        return mountModal(`<div class="modal episode-card">
+          <div class="episode-card__tag">EPISODE COMPLETE</div>
+          <div class="episode-card__title">${t}</div>
+          <div class="episode-card__sub">${sub}</div>
+          <div class="episode-card__save">✓ ${save}</div>
+          <button class="close episode-card__close">계속하기</button>
+        </div>`);
+      }
       // subway_map is handled by map.js (view_dom delegates before reaching here)
       return Promise.resolve();
     },

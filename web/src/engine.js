@@ -75,7 +75,7 @@ export class Engine {
       case 'sound': await v.sound({ file: node.file }); break;
       case 'amb': await v.amb({ file: node.file, fadein: node.fadein }); break;
       case 'stop': await v.stop({ channel: node.channel }); break;
-      case 'call_screen': await v.callScreen({ name: node.name }); break;
+      case 'call_screen': await v.callScreen({ name: node.name, title: node.title, type: node.type }); break;
       case 'consult': {
         if (this.state.vars.doyun_used_chapter) {
           await v.say({ who: 'd', name: '도윤', color: '#2fb574',

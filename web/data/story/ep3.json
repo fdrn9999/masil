@@ -920,6 +920,15 @@
    "text": "다음 역으로. 아직 매듭짓지 못한 이야기가, 한 번 더 남아 있다."
   },
   {
+   "op": "call_screen",
+   "name": "episode_card",
+   "title": "Ep.3",
+   "type": [
+    "천천히, 진짜가 되는",
+    "진행이 저장되었어요"
+   ]
+  },
+  {
    "op": "set",
    "expr": "V.show_gauges = false"
   },

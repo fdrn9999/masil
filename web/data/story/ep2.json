@@ -824,6 +824,15 @@
    "text": "── Ep.2 끝 ──"
   },
   {
+   "op": "call_screen",
+   "name": "episode_card",
+   "title": "Ep.2",
+   "type": [
+    "문래, 그 골목의 밤",
+    "진행이 저장되었어요"
+   ]
+  },
+  {
    "op": "if",
    "cond": "V.doyun_secret_seen",
    "then": [

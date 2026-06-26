@@ -1903,6 +1903,15 @@
    "text": "Ep.1 끝. 2호선은 아직, 다음 역을 향해 돈다."
   },
   {
+   "op": "call_screen",
+   "name": "episode_card",
+   "title": "Ep.1",
+   "type": [
+    "빠르게 불타는 썸",
+    "진행이 저장되었어요"
+   ]
+  },
+  {
    "op": "set",
    "expr": "V.show_gauges = false"
   },

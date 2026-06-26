@@ -26,7 +26,6 @@ export function makeSysMenu(root, {
     bar.id = 'sysmenu-bar';
     bar.className = 'sm-bar';
     bar.innerHTML = `
-      <button class="sm-btn sm-btn--rollback" id="sm-rollback"   title="이전으로">↩</button>
       <button class="sm-btn sm-btn--skip"     id="sm-skip"       title="스킵">»</button>
       <button class="sm-btn sm-btn--auto"     id="sm-auto"       title="오토">▶</button>
       <button class="sm-btn sm-btn--backlog"  id="sm-backlog"    title="백로그">≡</button>
@@ -43,10 +42,6 @@ export function makeSysMenu(root, {
   // ── Wire button events ──────────────────────────────────────────────────────
   function wireButtons() {
     if (!barEl) return;
-
-    barEl.querySelector('#sm-rollback').addEventListener('click', () => {
-      if (onRollback) onRollback();
-    });
 
     barEl.querySelector('#sm-skip').addEventListener('click', () => {
       playback.toggleSkip();

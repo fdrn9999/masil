@@ -496,6 +496,50 @@ body { display: flex; align-items: center; justify-content: center; }
 }
 .result-card__close:hover { transform: translateY(-2px); }
 
+/* ── 에피소드 완료 카드 (overlay episode_card) ── */
+.episode-card {
+  text-align: center;
+  max-width: 520px;
+  background: linear-gradient(160deg, #eafaf3 0%, #f3efff 55%, #fff4f8 100%);
+  position: relative; overflow: hidden;
+}
+.episode-card::before {
+  content: "✦  ✦  ✦";
+  position: absolute; top: 16px; left: 0; right: 0;
+  color: #bfe9d4; font-size: 13px; letter-spacing: 8px; text-align: center;
+}
+.episode-card__tag {
+  font-family: var(--font-display);
+  font-size: 12px; letter-spacing: 4px;
+  color: #2fb574; margin: 14px 0 10px;
+}
+.episode-card__title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 6vw, 46px);
+  color: var(--ink); line-height: 1.1;
+}
+.episode-card__sub {
+  font-family: var(--font-body); font-weight: 600;
+  font-size: clamp(14px, 2.4vw, 18px);
+  color: var(--ink-soft); margin-top: 8px;
+}
+.episode-card__save {
+  margin-top: 18px;
+  font-size: 13px; color: #1f8f5c; font-weight: 700;
+  background: rgba(120,210,170,.16); border-radius: 999px;
+  padding: 7px 16px; display: inline-block;
+}
+.episode-card__close {
+  display: block; margin: 22px auto 0;
+  padding: 13px 44px; border: none;
+  font-family: var(--font-display);
+  font-size: clamp(15px, 2.4vw, 17px);
+  color: #fff; cursor: pointer; border-radius: var(--r-pill);
+  background: linear-gradient(135deg, #2fb574, #6fd0a8);
+  box-shadow: 0 8px 18px -8px rgba(47,181,116,.6);
+}
+.episode-card__close:hover { transform: translateY(-2px); }
+
 /* ── 2호선 캔디 루프 맵 (map.js) ── */
 
 /* Full-bleed panel inside #overlay */
