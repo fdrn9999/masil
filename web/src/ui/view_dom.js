@@ -58,6 +58,20 @@ const SUPPLEMENT_DEFAULTS = {
 async function boot() {
   const root = document.getElementById('game');
 
+  // ── 치명 오류를 화면에 노출 (무성 멈춤 방지 — 특히 reload-resume 진단용) ──
+  function showFatal(msg) {
+    let el = document.getElementById('__fatal');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '__fatal';
+      el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:42%;overflow:auto;background:rgba(192,57,43,.96);color:#fff;font:12px/1.45 monospace;padding:10px;z-index:999999;white-space:pre-wrap;word-break:break-all';
+      (document.body || document.documentElement).appendChild(el);
+    }
+    el.textContent += msg + '\n';
+  }
+  window.addEventListener('error', e => showFatal('JS오류: ' + e.message + ' @ ' + ((e.filename || '').split('/').pop()) + ':' + e.lineno + ':' + e.colno));
+  window.addEventListener('unhandledrejection', e => showFatal('Promise오류: ' + ((e.reason && (e.reason.stack || e.reason.message)) || e.reason)));
+
   // ── Check for a reload-resume flag (set by requestResume / slot load) ──────
   // Must be read BEFORE title is shown so we can skip it and resume directly.
   const _resumeRaw = sessionStorage.getItem('masil.resumeOnLoad');
@@ -318,10 +332,15 @@ async function boot() {
     if (resumedPos) {
       mountGameButtons();
       gameStarted = true;
-      reconstructContext(resumedPos.ip);    // 배경·채팅 컨텍스트 복원 (빈 화면 방지)
-      await engine.resume(resumedPos);
-      state.savePersistent();
+      try {
+        reconstructContext(resumedPos.ip);    // 배경·채팅 컨텍스트 복원 (빈 화면 방지)
+        await engine.resume(resumedPos);
+        state.savePersistent();
+      } catch (err) {
+        showFatal('RESUME 실패 (ip=' + resumedPos.ip + ', label=' + resumedPos.label + '): ' + (err && (err.stack || err.message) || err));
+      }
     } else {
+      showFatal('resumedPos 없음 — loadQuick/loadSlot가 null 반환 (저장이 안 읽힘). slotKey=' + JSON.stringify(slotKey));
       _showTitle();
     }
     return;
