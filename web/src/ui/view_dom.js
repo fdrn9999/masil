@@ -201,15 +201,38 @@ async function boot() {
   // ── Backlog overlay ────────────────────────────────────────────────────────
   const backlog = makeBacklog(root, { playback, characters });
 
-  // ── Rollback handler ───────────────────────────────────────────────────────
+  // ── Rollback handler — '한 줄 뒤로': 현재 줄 스냅샷을 버리고 이전 줄로 되돌린다 ──
   function handleRollback() {
-    if (playback.canRollback()) {
-      const snap = playback.popSnapshot();
-      // Deep-clone vars so the live state.vars object doesn't alias the snapshot
-      requestRollback(snap.pos, JSON.parse(JSON.stringify(snap.vars)));
+    const cnt = playback.snapshotCount();
+    if (cnt >= 2) {
+      playback.popSnapshot();                                       // 현재 줄 스냅샷 버림
+      const prev = playback.popSnapshot();                          // 이전 줄로
+      requestRollback(prev.pos, JSON.parse(JSON.stringify(prev.vars)));
+    } else if (cnt === 1) {
+      const cur = playback.popSnapshot();                           // 한 줄뿐 → 현재 줄 처음으로
+      requestRollback(cur.pos, JSON.parse(JSON.stringify(cur.vars)));
     } else {
       overlay.toast({ text: '더 되돌릴 수 없어요' });
     }
+  }
+
+  // resume 시 UI 컨텍스트 재구성 — 엔진은 ip만 복원하고 직전 scene(배경)·chat_open을
+  // 재실행하지 않아, 롤백/로드로 스토리·채팅 중간에 들어가면 배경 없고 채팅 닫힌 빈
+  // 화면이 된다. resume 직전에 가장 가까운 배경과 채팅 열림/닫힘을 복원해 막는다.
+  function reconstructContext(ip) {
+    const nodes = script.nodes;
+    const end = Math.min(ip, nodes.length);
+    let bg = null;
+    for (let k = end - 1; k >= 0; k--) { const n = nodes[k]; if (n && n.op === 'scene' && n.bg) { bg = n.bg; break; } }
+    let room = null;
+    for (let k = end - 1; k >= 0; k--) {
+      const n = nodes[k]; if (!n) continue;
+      if (n.op === 'chat_open') { room = n.room != null ? engine.interp(n.room) : ''; break; }
+      if (n.op === 'chat_close') break;
+    }
+    if (bg) stage.scene({ bg });
+    if (room != null) { isChatOpen = true; chat.open({ room }); }
+    else { isChatOpen = false; chat.close(); }
   }
 
   // ── System menu bar (skip/auto/backlog/save/load/title) ───────────────────
@@ -293,6 +316,7 @@ async function boot() {
     if (resumedPos) {
       mountGameButtons();
       gameStarted = true;
+      reconstructContext(resumedPos.ip);    // 배경·채팅 컨텍스트 복원 (빈 화면 방지)
       await engine.resume(resumedPos);
       state.savePersistent();
     } else {
@@ -326,6 +350,7 @@ async function boot() {
           title.hide();
           mountGameButtons();
           gameStarted = true;
+          reconstructContext(pos.ip);         // 배경·채팅 컨텍스트 복원
           await engine.resume(pos);
           // Persist endings_seen after the story finishes.
           state.savePersistent();

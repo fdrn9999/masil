@@ -73,5 +73,7 @@ export function makePlayback(opts = {}) {
     },
 
     canRollback() { return _snapshots.length > 0; },
+
+    snapshotCount() { return _snapshots.length; },
   };
 }
