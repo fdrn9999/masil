@@ -28,11 +28,21 @@ export function makeSprites(root, { SPRITES, base = 'images/sprites/' }) {
     if (key === curKey && layer.classList.contains('shown')) return;
     const path = base + key + '.webp';
     const my = ++reqId;
+    const wasShown = layer.classList.contains('shown');
     const img = new Image();
     img.onload = () => {
       if (my !== reqId) return;                       // 더 최신 요청이 왔으면 버림
-      layer.style.backgroundImage = `url("${path}")`;
-      layer.classList.add('shown');
+      if (wasShown) {
+        // 이미 떠 있으면 미세 디졸브로 교체(표정/인물 변경 하드컷 방지)
+        layer.classList.add('swap');
+        requestAnimationFrame(() => {
+          layer.style.backgroundImage = `url("${path}")`;
+          requestAnimationFrame(() => layer.classList.remove('swap'));
+        });
+      } else {
+        layer.style.backgroundImage = `url("${path}")`;
+        layer.classList.add('shown');                 // 첫 등장은 .shown 페이드인
+      }
       curKey = key;
       curChar = key.split('_')[0];
     };
@@ -60,6 +70,7 @@ export function makeSprites(root, { SPRITES, base = 'images/sprites/' }) {
   function hide() {
     reqId++;                       // 진행 중 로드 무효화
     layer.classList.remove('shown');
+    layer.classList.remove('swap');   // 디졸브 상태 누수 방지
     curKey = null;
     curChar = null;
   }

@@ -110,6 +110,10 @@ body { display: flex; align-items: center; justify-content: center; }
   transition: opacity .4s ease, transform .4s ease;
 }
 #sprite-layer.shown { opacity: 1; transform: translateY(0); }
+/* 표정/인물 이미지 교체 시 미세 디졸브 (background-image는 transition 불가 → opacity로) */
+#sprite-layer.swap { opacity: .12; transition: opacity .16s ease; }
+/* 나레이션/독백 줄에선 직전 화자를 살짝 디밍 — 발화 중처럼 보이지 않게 (stage.js가 #game.is-narration 토글) */
+#game.is-narration #sprite-layer.shown { opacity: .5; filter: saturate(.88); }
 @media (orientation: portrait) { #sprite-layer { background-size: auto 86%; } }
 
 .hidden { display: none !important; }
@@ -2134,4 +2138,14 @@ body { display: flex; align-items: center; justify-content: center; }
 .result-card__close:focus-visible, .episode-card__close:focus-visible {
   outline: 3px solid var(--lav-deep);
   outline-offset: 2px;
+}
+
+/* ── 모달/카드/패널 등장 애니메이션 (prefers-reduced-motion 전역이 자동 무력화) ── */
+@keyframes card-pop { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes scrim-in { from { opacity: 0; } to { opacity: 1; } }
+.modal, .result-card, .episode-card, .map-panel, .st-panel, .sl-panel, .bl-panel {
+  animation: card-pop .24s cubic-bezier(.2,.8,.3,1) both;
+}
+#overlay, .st-scrim, .sl-scrim, .bl-scrim {
+  animation: scrim-in .18s ease both;
 }

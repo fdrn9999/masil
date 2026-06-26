@@ -126,6 +126,7 @@ async function boot() {
   const menu = makeMenu(root, { audio });
 
   let isChatOpen = false;
+  let _lastSceneBg = null;
 
   // Small delay helper for skip/auto fast-forward
   const delay = ms => new Promise(r => setTimeout(r, ms));
@@ -133,7 +134,9 @@ async function boot() {
   // view sink — delegates every engine op to the right UI module
   const view = {
     async scene(a) {
-      sprites.hide();          // 장소가 바뀌면 스탠딩은 내림(다음 say가 다시 띄움)
+      // 같은 배경 연속 컷은 스프라이트 유지(같은 화자 재페이드 깜빡임 방지). 배경 바뀌면 내림.
+      if (a.bg !== _lastSceneBg) sprites.hide();
+      _lastSceneBg = a.bg;
       stage.scene(a);
     },
     async sprite(a) {          // story 명시 교체: {img} 직접 / {who,face} 레지스트리 / {hide}
@@ -258,8 +261,24 @@ async function boot() {
       if (n.op === 'chat_close') break;
     }
     if (bg) stage.scene({ bg });
+    _lastSceneBg = bg;
     if (room != null) { isChatOpen = true; chat.open({ room }); }
     else { isChatOpen = false; chat.close(); }
+    // 스탠딩 스프라이트 복원 — 채팅 닫힌 상태에서만. scene/chat_open 경계 뒤로는 안 넘어감.
+    if (room == null) {
+      for (let k = end - 1; k >= 0; k--) {
+        const n = nodes[k];
+        if (!n) continue;
+        if (n.op === 'scene' || n.op === 'chat_open') break;   // 경계 뒤는 스프라이트 없음
+        if (n.op === 'sprite') {
+          if (n.hide) sprites.hide();
+          else if (n.img) sprites.showImage(n.img);
+          else sprites.show(n.who, n.face);
+          break;
+        }
+        if (n.op === 'say' && !n.nosprite && SPRITES[n.who]) { sprites.show(n.who, n.face); break; }
+      }
+    }
   }
 
   // ── System menu bar (skip/auto/backlog/save/load/title) ───────────────────

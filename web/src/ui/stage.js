@@ -102,6 +102,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
         nameEl.style.color = legibleNameColor(a.color);
         nameEl.style.display = a.name ? 'block' : 'none';
         box.classList.toggle('narration', !a.name);   // 나레이션은 기울임+톤으로 대사와 구분(CSS)
+        game.classList.toggle('is-narration', !a.name);  // 나레이션 줄엔 직전 화자 스프라이트 디밍(발화중 오인 방지)
 
         let resolved = false, timer = null;
         let typed = false, autoNw = false, autoT0 = null;
