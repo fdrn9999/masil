@@ -144,7 +144,7 @@ async function boot() {
     async say(a) {
       // Push rollback snapshot BEFORE advancing (preserves pre-line state)
       playback.pushSnapshot({ vars: state.vars, pos: engine.position() });
-      if (!isChatOpen) sprites.show(a.who, a.face);   // 화자 캐릭터 스탠딩(채팅 중엔 X)
+      if (!isChatOpen && !a.nosprite) sprites.show(a.who, a.face);   // 화자 스탠딩(채팅/원격·암전 줄 제외)
       await stage.say(a);
       autosave();
     },

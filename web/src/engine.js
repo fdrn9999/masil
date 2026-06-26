@@ -57,7 +57,7 @@ export class Engine {
       case 'sprite': if (v.sprite) await v.sprite({ who: node.who, face: node.face, img: node.img, hide: node.hide }); break;
       case 'say': {
         const c = this.characters[node.who] || {};
-        await v.say({ who: node.who, name: c.name, color: node.color || c.color, text: this.interp(node.text), face: node.face });
+        await v.say({ who: node.who, name: c.name, color: node.color || c.color, text: this.interp(node.text), face: node.face, nosprite: node.nosprite });
         break;
       }
       case 'chat_open': await v.chatOpen({ room: this.interp(node.room) }); break;
