@@ -71,6 +71,7 @@ export const BG_INFO = {
   rooftop:     { desc: '옥상 바' },
   doyun_room:  { desc: '도윤의 방' },
   window_dusk: { desc: '창가, 노을' },
+  mc_profile:  { desc: '내 프사 — 석촌호수 벚꽃 (CG)' },
   black:       { desc: '암전', real: false },
   white:       { desc: '흰 플래시', real: false },
 };
