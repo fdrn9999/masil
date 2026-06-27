@@ -198,9 +198,9 @@ test('all_endings_seen() false when none seen', () => {
   assert.equal(sys.all_endings_seen(), false);
 });
 
-test('all_endings_seen() true when all 7 seen', () => {
+test('all_endings_seen() true when all 9 seen (route seoa/jiu + 7)', () => {
   const { sys, state } = mkSys4();
-  state.persistent.endings_seen = ['reconcile','doyun','true','good','fishtank','lonely','run'];
+  state.persistent.endings_seen = ['seoa','jiu','reconcile','doyun','true','good','fishtank','lonely','run'];
   assert.equal(sys.all_endings_seen(), true);
 });
 
@@ -452,8 +452,10 @@ test('MAP verbatim color values (from screens_map.rpy)', () => {
   assert.equal(MAP.title_txt, '#2fb574');
 });
 
-test('ENDING_LIST has 7 entries matching systems_extra.rpy order', () => {
-  assert.equal(ENDING_LIST.length, 7);
-  assert.equal(ENDING_LIST[0][0], 'reconcile');
-  assert.equal(ENDING_LIST[6][0], 'run');
+test('ENDING_LIST has 9 entries — route(seoa/jiu) + 7 진엔딩', () => {
+  assert.equal(ENDING_LIST.length, 9);
+  assert.equal(ENDING_LIST[0][0], 'seoa');
+  assert.equal(ENDING_LIST[1][0], 'jiu');
+  assert.equal(ENDING_LIST[2][0], 'reconcile');
+  assert.equal(ENDING_LIST[8][0], 'run');
 });

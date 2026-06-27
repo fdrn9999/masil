@@ -1858,8 +1858,12 @@
    "nosprite": true
   },
   {
+   "op": "set",
+   "expr": "V.route_ending = \"seoa\""
+  },
+  {
    "op": "jump",
-   "label": "ep1_wrap"
+   "label": "epilogue_full"
   },
   {
    "op": "label",

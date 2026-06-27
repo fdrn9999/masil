@@ -21,7 +21,7 @@ const SUPPLEMENT_DEFAULTS = {
   doyun_bond: 0, inventory: {}, item_flags: {}, doyun_used_chapter: false, show_gauges: false,
   mc_name: '진호', seoa_result: '', date_loc: '', seoa_card_given: false, promise_spring: false,
   ep4_choice: '', doyun_secret_seen: false, meet_loc: '', date3_loc: '',
-  mingyeol_truth_known: false, heard_side: '',
+  mingyeol_truth_known: false, heard_side: '', route_ending: '',
 };
 
 // 4-way ending menu identified by its exact prompt text.
@@ -75,7 +75,16 @@ function play(pickFn, preVars = {}) {
  * the choice whose text includes `targetText`. Falls back to `fallback` for all
  * other menus.
  */
-function makeEndingPicker(targetChoiceText, fallback = () => 0) {
+// 여성별 루트 엔딩 게이트(서아 '천천히' / 지우 '그 다음으로')를 피해 Ep.4까지 진행시키는 폴백.
+// Ep.1: choice 0 = 빠른 수락(계속). Ep.3: '회피(친구)' 선택해야 Ep.4로 계속.
+function continuePicker(_n, a) {
+  if (a.prompt === '── Ep.3의 결말을 가르는 선택 ──') {
+    const idx = a.choices.findIndex(c => c.includes('회피') || c.includes('친구가 편'));
+    if (idx >= 0) return idx;
+  }
+  return 0;
+}
+function makeEndingPicker(targetChoiceText, fallback = continuePicker) {
   return (_n, a) => {
     if (a.prompt === EP4_ENDING_PROMPT) {
       const idx = a.choices.findIndex(c => c.includes(targetChoiceText));
@@ -130,6 +139,25 @@ test('ending run: 도망 choice → final_ending returns run, endings_seen inclu
     (state.persistent.endings_seen || []).includes('run'),
     `expected endings_seen to include 'run', got: ${JSON.stringify(state.persistent.endings_seen)}`
   );
+});
+
+// (route-seoa) Ep.1 '천천히'(choice 1) → 조기 종료, 루트 엔딩 seoa
+test('route ending seoa: Ep.1 천천히 선택 → 조기 종료 + final_ending seoa', async () => {
+  const picker = (_n, a) => (a.prompt === '── 이 대답이 Ep.1의 결말을 가른다. ──' ? 1 : 0);
+  const { state, sys } = await play(picker);
+  assert.equal(state.vars.route_ending, 'seoa');
+  assert.equal(sys.final_ending()[0], 'seoa');
+  assert.ok((state.persistent.endings_seen || []).includes('seoa'));
+  assert.equal(state.vars.ep4_choice, '', 'Ep.4에 진입하지 않아야(조기 종료)');
+});
+
+// (route-jiu) Ep.1 빠른수락(계속) + Ep.3 '그 다음으로'(choice 0) → 루트 엔딩 jiu
+test('route ending jiu: Ep.3 그 다음으로 선택 → 조기 종료 + final_ending jiu', async () => {
+  const { state, sys } = await play(() => 0);   // Ep.1 choice0=fast(계속), Ep.3 choice0=true(지우 루트)
+  assert.equal(state.vars.route_ending, 'jiu');
+  assert.equal(sys.final_ending()[0], 'jiu');
+  assert.ok((state.persistent.endings_seen || []).includes('jiu'));
+  assert.equal(state.vars.ep4_choice, '');
 });
 
 // (b) ep4_choice='friend' + doyun_bond≥25 → final_ending()[0] === 'doyun'

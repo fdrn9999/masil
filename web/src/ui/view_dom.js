@@ -54,6 +54,7 @@ const SUPPLEMENT_DEFAULTS = {
   seoa_card_given:        false,
   date_loc:               '',
   promise_spring:         false,
+  route_ending:           '',      // 'seoa'/'jiu' — 여성별 루트 엔딩 조기 종료 표식(없으면 Ep.4 진엔딩)
 };
 
 async function boot() {

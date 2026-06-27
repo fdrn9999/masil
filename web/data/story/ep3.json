@@ -900,8 +900,12 @@
    ]
   },
   {
+   "op": "set",
+   "expr": "V.route_ending = \"jiu\""
+  },
+  {
    "op": "jump",
-   "label": "ep3_wrap"
+   "label": "epilogue_full"
   },
   {
    "op": "label",

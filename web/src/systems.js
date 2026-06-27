@@ -82,6 +82,7 @@ export function makeSystems(state, { onNotify = () => {} } = {}) {
       return ['lonely', null];
     },
     final_ending() {
+      if (v.route_ending) return [v.route_ending, v.route_ending];   // 루트 엔딩(서아/지우 조기 종료) 우선
       const c = v.ep4_choice;
       if (c === 'run') return ['run', null];
       if (c === 'reconcile' && v.doyun_bond >= 25 && v.sincere.mingyeol >= 35) return ['reconcile', 'mingyeol'];
@@ -119,6 +120,8 @@ export function makeSystems(state, { onNotify = () => {} } = {}) {
     love_type() {
       const [kind, who] = sys.final_ending();
       const table = {
+        'seoa':      ['천천히 데운 사람', '빠르게 타오르다 식는 대신, 한 사람을 끝까지 데운.'],
+        'jiu':       ['게임 밖의 사람',   '헤드셋을 벗고도 곁에 둔, 식지 않는 불을 택한.'],
         'run':       ['도망러',         '끝내 또 도망친. 익숙한 거리에서 가장 외로운 사람.'],
         'fishtank':  ['어장러',         '모두에게 잘했지만, 아무에게도 진짜를 주진 못한.'],
         'doyun':     ['의리파',         '사랑보다 곁을 택한. 가장 단단한 걸 끝까지 지킨.'],

@@ -66,6 +66,28 @@
   },
   {
    "op": "if",
+   "cond": "V.ekind == \"seoa\"",
+   "then": [
+    {
+     "op": "jump",
+     "label": "epi_seoa"
+    }
+   ],
+   "else": []
+  },
+  {
+   "op": "if",
+   "cond": "V.ekind == \"jiu\"",
+   "then": [
+    {
+     "op": "jump",
+     "label": "epi_jiu"
+    }
+   ],
+   "else": []
+  },
+  {
+   "op": "if",
    "cond": "V.ekind == \"reconcile\"",
    "then": [
     {
@@ -417,6 +439,62 @@
    "op": "say",
    "who": "n",
    "text": "가벼운 척이 제일 쉬웠다.{w=0.4} 그게 제일 외로운 줄도,{w=0.3} 그땐 몰랐다."
+  },
+  {
+   "op": "jump",
+   "label": "epi_close"
+  },
+  {
+   "op": "label",
+   "name": "epi_seoa"
+  },
+  {
+   "op": "scene",
+   "bg": "room_later",
+   "with": "Dissolve(1.0)"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "서아와는, 빠르게 타오르다 식는 대신 — 천천히, 그러나 끝까지 갔다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "봄이 다시 왔을 때 우리는 석촌호수 벚꽃 아래 나란히 섰다.{w=0.3} 그 프사 한 장에서 시작된 이야기였다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "가볍게 시작한 오픈챗에서, 나는 처음으로 도망치지 않고 한 사람을 끝까지 만났다."
+  },
+  {
+   "op": "jump",
+   "label": "epi_close"
+  },
+  {
+   "op": "label",
+   "name": "epi_jiu"
+  },
+  {
+   "op": "scene",
+   "bg": "room_later",
+   "with": "Dissolve(1.0)"
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "지우와는 게임 친구에서 한 칸을 더 넘었다.{w=0.3} 빠르지 않았지만, 그래서 식지 않았다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "여전히 매일 헤드셋을 끼고 만나지만 — 이제 헤드셋을 벗고도, 우리는 같이 있었다."
+  },
+  {
+   "op": "say",
+   "who": "n",
+   "text": "천천히 데우는 게 무서워 도망만 치던 내가, 이번엔 그 불 앞에 끝까지 앉아 있었다."
   },
   {
    "op": "jump",

@@ -8,6 +8,8 @@ export const ITEMS = {
   polaroid:    { name: '폴라로이드', icon: '📷', desc: '지우와 성수 카페에서 찍은 폴라로이드 한 장. 둘 다 어색하게 웃고 있다.' },
 };
 export const ENDING_LIST = [
+  ["seoa",      "빠르게 타다, 천천히 남은"],   // 루트: Ep.1 '천천히' 선택
+  ["jiu",       "헤드셋 너머, 그 다음"],       // 루트: Ep.3 '그 다음으로' 선택
   ["reconcile", "용서까지 데려다준 사람"],
   ["doyun",     "그날 그 손을 끝까지"],
   ["true",      "끝내 건넨 진심"],
