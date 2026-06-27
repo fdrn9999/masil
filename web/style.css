@@ -92,9 +92,18 @@ body { display: flex; align-items: center; justify-content: center; }
 #stage {
   position: absolute;
   inset: 0;
-  transition: background-color .4s ease;
   background: transparent;
 }
+/* 배경 크로스페이드/플래시 오버레이 (stage.js) — #stage 위, #sprite-layer(z5) 아래 */
+#stage-next {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  pointer-events: none;
+}
+.bg-hint { z-index: 2; }   /* 힌트 칩은 크로스페이드 레이어 위 */
 
 /* ── 캐릭터 스탠딩 스프라이트 레이어 (sprites.js) — 배경 위, 대사창/채팅 아래 ── */
 #sprite-layer {

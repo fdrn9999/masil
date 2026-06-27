@@ -35,6 +35,11 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
   hintEl.className = 'bg-hint bg-hint--hidden';
   stage.appendChild(hintEl);
 
+  // 배경 크로스페이드/플래시용 오버레이 레이어 (현재 배경 위·스프라이트 아래)
+  const nextBg = document.createElement('div');
+  nextBg.id = 'stage-next';
+  stage.appendChild(nextBg);
+
   // device dir: 세로(모바일)=mobile, 가로(PC)=pc
   function deviceDir() {
     return (typeof window !== 'undefined' && window.matchMedia
@@ -43,25 +48,68 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
 
   let _curBg = null;
   let _curDir = null;
+  let _shownOnce = false;   // 첫 장면은 트랜지션 없이 즉시
+  let _commitId = 0;        // 진행 중 크로스페이드 commit 경합 방지
 
-  function applyBg(bg) {
-    if (backgrounds[bg]) stage.style.backgroundColor = backgrounds[bg];
-    stage.style.backgroundImage = 'none';
+  function imgPath(bg) { _curDir = deviceDir(); return 'images/bg/' + _curDir + '/bg_' + bg + '.png'; }
+  function loadInto(el, path) {
+    const img = new Image();
+    img.onload = () => { el.style.backgroundImage = `url("${path}")`; };
+    img.onerror = () => {};                       // safe-play: 에셋 없으면 단색 유지
+    img.src = path;
+  }
+  // with 값 → {kind:'cut'|'cross'|'flash', dur, color}
+  function parseTrans(w) {
+    if (!w) return { kind: 'cut' };
+    const s = String(w).toLowerCase();
+    if (s.indexOf('flash') === 0) return { kind: 'flash', dur: 280, color: s.indexOf('white') >= 0 ? '#ffffff' : '#000000' };
+    const m = s.match(/dissolve\(([\d.]+)\)/);
+    if (m) return { kind: 'cross', dur: Math.round((parseFloat(m[1]) || 0.4) * 1000) };
+    const map = { fade: 400, dissolve: 500, slowfade: 800, longdissolve: 1000 };
+    return { kind: 'cross', dur: map[s] || 400 };
+  }
+
+  function applyBg(bg, withTrans) {
     const info = BG_INFO[bg];
-    const real = !info || info.real !== false;   // black/white flashes → no asset
-    if (real && /^\w+$/.test(bg)) {
-      const dir = deviceDir();
-      _curDir = dir;
-      const path = 'images/bg/' + dir + '/bg_' + bg + '.png';
-      const img = new Image();
-      img.onload = () => { stage.style.backgroundImage = `url("${path}")`; };
-      img.onerror = () => {};                     // keep solid placeholder
-      img.src = path;
-      hintEl.textContent = path + ' · ' + (info ? info.desc : bg);
-      hintEl.classList.remove('bg-hint--hidden');
-    } else {
-      hintEl.classList.add('bg-hint--hidden');    // 연출(암전/플래시)
+    const real = !info || info.real !== false;    // black/white 연출 → 에셋 없음
+    const color = backgrounds[bg] || '#15161d';
+    const path = (real && /^\w+$/.test(bg)) ? imgPath(bg) : null;
+    if (path) { hintEl.textContent = path + ' · ' + (info ? info.desc : bg); hintEl.classList.remove('bg-hint--hidden'); }
+    else hintEl.classList.add('bg-hint--hidden');
+
+    const t = parseTrans(withTrans);
+    if (t.kind === 'cut' || !_shownOnce) {            // 첫 장면 또는 with 없음 → 즉시
+      _commitId++;
+      stage.style.backgroundColor = color;
+      stage.style.backgroundImage = 'none';
+      if (path) loadInto(stage, path);
+      nextBg.style.transition = 'none'; nextBg.style.opacity = '0';
+      _shownOnce = true;
+      return;
     }
+    if (t.kind === 'flash') {                          // 흰/검 플래시 → 새 배경 노출
+      _commitId++;
+      stage.style.backgroundColor = color; stage.style.backgroundImage = 'none';
+      if (path) loadInto(stage, path);
+      nextBg.style.transition = 'none';
+      nextBg.style.backgroundColor = t.color; nextBg.style.backgroundImage = 'none';
+      nextBg.style.opacity = '1';
+      requestAnimationFrame(() => { nextBg.style.transition = 'opacity ' + t.dur + 'ms ease'; nextBg.style.opacity = '0'; });
+      return;
+    }
+    // 크로스페이드: next 레이어에 새 배경을 깔고 fade-in → 끝나면 base로 commit
+    nextBg.style.transition = 'none';
+    nextBg.style.backgroundColor = color; nextBg.style.backgroundImage = 'none';
+    if (path) loadInto(nextBg, path);
+    nextBg.style.opacity = '0';
+    requestAnimationFrame(() => { nextBg.style.transition = 'opacity ' + t.dur + 'ms ease'; nextBg.style.opacity = '1'; });
+    const my = ++_commitId;
+    setTimeout(() => {
+      if (my !== _commitId) return;                    // 더 최신 전환이 왔으면 무시
+      stage.style.backgroundColor = nextBg.style.backgroundColor;
+      stage.style.backgroundImage = nextBg.style.backgroundImage;
+      nextBg.style.transition = 'none'; nextBg.style.opacity = '0';
+    }, t.dur + 40);
   }
 
   // PC↔모바일 회전 시 현재 배경을 해당 기기용 이미지로 다시 로드
@@ -83,10 +131,10 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
   }
 
   return {
-    scene({ bg }) {
-      if (!bg) return;
-      _curBg = bg;
-      applyBg(bg);
+    scene(a) {
+      if (!a || !a.bg) return;
+      _curBg = a.bg;
+      applyBg(a.bg, a.with);   // with: slowfade/dissolve/Dissolve(n)/flash_* → 크로스페이드/플래시
     },
 
     say(a) {
