@@ -224,6 +224,14 @@ async function boot() {
   const engine = new Engine({ script, characters, state, sys, evaluator: makeEvaluator(state, sys), view });
   const autosave = () => state.saveAuto(engine.position());
 
+  // 진짜 엔딩(engine.start/resume이 최상위 return으로 resolve)에 도달하면 호출 —
+  // 마지막 프레임에 갇히지 않게 타이틀로 복귀하고, 자동저장을 비워 '이어하기'가
+  // 엔딩으로 재진입하지 않게 한다. endings_seen은 영구라 유지됨.
+  function finishToTitle() {
+    try { state.savePersistent(); state.clearAuto(); } catch (e) {}
+    location.reload();
+  }
+
   // ── Save/Load UI ───────────────────────────────────────────────────────────
   // `playback` (the real makePlayback instance) is already in scope and is fed
   // by stage/chat as the player reads — so buildMeta previews are populated.
@@ -369,7 +377,7 @@ async function boot() {
       try {
         reconstructContext(resumedPos.ip);    // 배경·채팅 컨텍스트 복원 (빈 화면 방지)
         await engine.resume(resumedPos);
-        state.savePersistent();
+        finishToTitle();
       } catch (err) {
         showFatal('RESUME 실패 (ip=' + resumedPos.ip + ', label=' + resumedPos.label + '): ' + (err && (err.stack || err.message) || err));
       }
@@ -397,8 +405,7 @@ async function boot() {
         mountGameButtons();
         gameStarted = true;
         await engine.start('episode1_full');
-        // Persist endings_seen after the story finishes.
-        state.savePersistent();
+        finishToTitle();   // 엔딩 도달 → 타이틀 복귀(막다른 정지 방지)
       },
 
       onContinue: async () => {
@@ -409,8 +416,7 @@ async function boot() {
           gameStarted = true;
           reconstructContext(pos.ip);         // 배경·채팅 컨텍스트 복원
           await engine.resume(pos);
-          // Persist endings_seen after the story finishes.
-          state.savePersistent();
+          finishToTitle();
         }
       },
 

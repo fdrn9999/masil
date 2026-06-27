@@ -30,6 +30,7 @@ export class GameState {
   saveSlot(n, enginePos, meta)  { this.storage.setItem(KEY.slot(n), JSON.stringify(this.snapshot(enginePos, meta))); }
   saveAuto(enginePos, meta)     { this.storage.setItem(KEY.auto, JSON.stringify(this.snapshot(enginePos, meta))); }
   saveQuick(enginePos, meta)    { this.storage.setItem(KEY.quick, JSON.stringify(this.snapshot(enginePos, meta))); }
+  clearAuto()                   { this.storage.removeItem(KEY.auto); }
 
   loadSlot(n)  { return this._load(KEY.slot(n)); }
   loadAuto()   { return this._load(KEY.auto); }
