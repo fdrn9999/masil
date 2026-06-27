@@ -144,7 +144,8 @@
   },
   {
    "op": "chat_open",
-   "room": "심야 게임 같이할 사람 모여라"
+   "room": "심야 게임 같이할 사람 모여라",
+   "clock": "23:40"
   },
   {
    "op": "recv",
@@ -445,7 +446,8 @@
   },
   {
    "op": "chat_open",
-   "room": "도윤"
+   "room": "도윤",
+   "clock": "12:30"
   },
   {
    "op": "recv",
@@ -565,7 +567,8 @@
   },
   {
    "op": "chat_open",
-   "room": "서아"
+   "room": "서아",
+   "clock": "20:10"
   },
   {
    "op": "recv",
@@ -609,7 +612,8 @@
   },
   {
    "op": "chat_open",
-   "room": "서아"
+   "room": "서아",
+   "clock": "20:35"
   },
   {
    "op": "send",
@@ -861,7 +865,8 @@
   },
   {
    "op": "chat_open",
-   "room": "서아"
+   "room": "서아",
+   "clock": "23:15"
   },
   {
    "op": "recv",
@@ -990,7 +995,8 @@
   },
   {
    "op": "chat_open",
-   "room": "도윤"
+   "room": "도윤",
+   "clock": "23:30"
   },
   {
    "op": "recv",

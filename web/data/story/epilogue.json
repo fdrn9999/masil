@@ -156,7 +156,8 @@
   },
   {
    "op": "chat_open",
-   "room": "그때 그 톡방"
+   "room": "그때 그 톡방",
+   "clock": "23:30"
   },
   {
    "op": "recv",
@@ -244,7 +245,8 @@
   },
   {
    "op": "chat_open",
-   "room": "마실"
+   "room": "마실",
+   "clock": "23:30"
   },
   {
    "op": "recv",
@@ -304,7 +306,8 @@
   },
   {
    "op": "chat_open",
-   "room": "그때 그 톡방"
+   "room": "그때 그 톡방",
+   "clock": "23:30"
   },
   {
    "op": "recv",
@@ -390,7 +393,8 @@
   },
   {
    "op": "chat_open",
-   "room": "그때 그 톡방"
+   "room": "그때 그 톡방",
+   "clock": "23:30"
   },
   {
    "op": "recv",
@@ -521,7 +525,8 @@
   },
   {
    "op": "chat_open",
-   "room": "도윤"
+   "room": "도윤",
+   "clock": "23:45"
   },
   {
    "op": "recv",

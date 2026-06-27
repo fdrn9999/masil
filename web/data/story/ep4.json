@@ -43,7 +43,8 @@
   },
   {
    "op": "chat_open",
-   "room": "자유 토론방"
+   "room": "자유 토론방",
+   "clock": "15:10"
   },
   {
    "op": "recv",
@@ -615,7 +616,8 @@
   },
   {
    "op": "chat_open",
-   "room": "서아"
+   "room": "서아",
+   "clock": "22:20"
   },
   {
    "op": "recv",

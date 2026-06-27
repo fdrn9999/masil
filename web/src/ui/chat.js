@@ -3,10 +3,16 @@ import { renderTags, escapeHtml } from './tags.js';
 export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio = null, playback = null }) {
   const wrap = root.querySelector('#chat');
   const cueEl = root.querySelector('#advance-cue');
-  let log, minutes = 0;
+  let log, minutes = 0, baseMin = 21 * 60 + 10;   // 채팅 시작 시각(분). chat_open clock="HH:MM"로 설정.
 
+  function parseClock(c) {
+    const mt = typeof c === 'string' && c.match(/^(\d{1,2}):(\d{2})$/);
+    if (!mt) return null;
+    const h = +mt[1], mi = +mt[2];
+    return (h <= 23 && mi <= 59) ? h * 60 + mi : null;
+  }
   function fmtTime() {
-    const t = 21 * 60 + 10 + minutes; minutes += 1;
+    const t = baseMin + minutes; minutes += 1;          // 시작 시각 + 메시지당 1분
     const h = Math.floor(t / 60) % 24, m = t % 60;
     const ampm = h < 12 ? '오전' : '오후'; const h12 = (h % 12) || 12;
     return `${ampm} ${h12}:${String(m).padStart(2, '0')}`;
@@ -29,8 +35,10 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
   }
 
   return {
-    open({ room }) {
+    open({ room, clock }) {
       wrap.classList.remove('hidden'); minutes = 0;
+      const b = parseClock(clock);
+      if (b != null) baseMin = b;   // clock 지정 시 그 시각부터(없으면 직전 유지)
       wrap.innerHTML = `<div class="topbar"><span aria-hidden="true" style="font-size:28px;opacity:.35;pointer-events:none">‹</span>
         <div><div class="room">${escapeHtml(room)}</div><div class="sub"><span class="dot"></span>온라인</div></div></div>
         <div class="log" tabindex="0" role="log" aria-live="polite"></div>`;

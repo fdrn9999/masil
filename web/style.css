@@ -1142,6 +1142,9 @@ body { display: flex; align-items: center; justify-content: center; }
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 12px 26px -8px rgba(180,140,160,.8);
 }
+/* 마실 채팅 중엔 플로팅 설정/폰 버튼 숨김 — 채팅 토픽바/로그를 덮지 않게(설정은 채팅 외에서) */
+#game:has(#chat:not(.hidden)) .settings-btn,
+#game:has(#chat:not(.hidden)) .phone-btn { display: none; }
 
 /* ── Settings layer (full-cover, own z-order) ── */
 .st-layer {

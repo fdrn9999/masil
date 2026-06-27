@@ -48,7 +48,8 @@
   },
   {
    "op": "chat_open",
-   "room": "지우"
+   "room": "지우",
+   "clock": "22:40"
   },
   {
    "op": "recv",

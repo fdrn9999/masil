@@ -43,7 +43,8 @@
   },
   {
    "op": "chat_open",
-   "room": "도윤"
+   "room": "도윤",
+   "clock": "21:20"
   },
   {
    "op": "recv",
@@ -897,7 +898,8 @@
   },
   {
    "op": "chat_open",
-   "room": "도윤"
+   "room": "도윤",
+   "clock": "08:50"
   },
   {
    "op": "if",

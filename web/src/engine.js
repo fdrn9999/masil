@@ -60,7 +60,7 @@ export class Engine {
         await v.say({ who: node.who, name: c.name, color: node.color || c.color, text: this.interp(node.text), face: node.face, nosprite: node.nosprite });
         break;
       }
-      case 'chat_open': await v.chatOpen({ room: this.interp(node.room) }); break;
+      case 'chat_open': await v.chatOpen({ room: this.interp(node.room), clock: node.clock }); break;
       case 'chat_close': await v.chatClose(); break;
       case 'recv': await v.recv({ name: this.interp(node.name), text: this.interp(node.text), avatar: node.avatar }); break;
       case 'send': await v.send({ text: this.interp(node.text) }); break;
