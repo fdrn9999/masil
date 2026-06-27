@@ -69,10 +69,14 @@ export function makeTitle(root, { hasContinue, onNew, onContinue, onLoad, onSett
   // ── Public API ──────────────────────────────────────────────────────────────
   function show() {
     layer.classList.remove('hidden');
+    layer.classList.remove('is-leaving');
   }
 
   function hide() {
-    layer.classList.add('hidden');
+    // 밝은 타이틀 → 오프닝으로 한 프레임 툭 끊기지 않게 페이드 후 숨김
+    // (reduced-motion이면 CSS transition .01ms라 사실상 즉시)
+    layer.classList.add('is-leaving');
+    setTimeout(() => { layer.classList.add('hidden'); layer.classList.remove('is-leaving'); }, 380);
   }
 
   return { show, hide };

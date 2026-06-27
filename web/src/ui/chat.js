@@ -103,7 +103,11 @@ export function makeChat(root, { MASIL, CHAT_AVATARS, AVATAR_FILES = {}, audio =
           if (playback && playback.isAuto()) {
             hide();
             if (autoT0 === null) autoT0 = Date.now();
-            if (Date.now() - autoT0 >= 700) { finish(); return; }
+            // 마지막 말풍선 길이에 비례한 읽기 시간(say와 톤 일치), 하한 1100ms
+            const lb = log && log.querySelector('.bubble-row:last-child .bubble');
+            const txt = (lb && lb.textContent) || '';
+            const wait = Math.max(1100, playback.autoDelay ? playback.autoDelay(txt) : 700 + txt.length * 40);
+            if (Date.now() - autoT0 >= wait) { finish(); return; }
           } else {
             show();   // tap-to-continue cue during chat
           }

@@ -124,6 +124,10 @@ body { display: flex; align-items: center; justify-content: center; }
 /* 나레이션/독백 줄에선 직전 화자를 살짝 디밍 — 발화 중처럼 보이지 않게 (stage.js가 #game.is-narration 토글) */
 #game.is-narration #sprite-layer.shown { opacity: .5; filter: saturate(.88); }
 @media (orientation: portrait) { #sprite-layer { background-size: auto 86%; } }
+/* 데스크톱 가로: 인물을 살짝 좌측·크게 — 정중앙에 작게 외롭게 박히는 것 완화(VN 비대칭) */
+@media (orientation: landscape) and (min-aspect-ratio: 4/3) {
+  #sprite-layer { background-position: 34% bottom; background-size: auto 96%; }
+}
 
 .hidden { display: none !important; }
 
@@ -463,7 +467,7 @@ body { display: flex; align-items: center; justify-content: center; }
 /* ── Toast notifications ── */
 #toast {
   position: absolute;
-  top: 14px; left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 14px); left: 50%;
   transform: translateX(-50%);
   display: flex; flex-direction: column; gap: 8px;
   pointer-events: none; z-index: 230;   /* above modals(210/220) so save/load toast feedback shows */
@@ -518,6 +522,15 @@ body { display: flex; align-items: center; justify-content: center; }
   color: #d9cffc; font-size: 13px; letter-spacing: 8px;
   text-align: center;
 }
+/* 엔딩 카드 임팩트 — 안쪽 요소 순차 등장 + 별 반짝임 (reduced-motion 전역이 무력화) */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes twinkle { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+.result-card::before { animation: twinkle 2.6s ease-in-out infinite; }
+.result-card__label      { animation: rise .42s ease both .14s; }
+.result-card__title      { animation: rise .42s ease both .22s; }
+.result-card__type-label { animation: rise .42s ease both .30s; }
+.result-card__desc       { animation: rise .42s ease both .38s; }
+.result-card__close      { animation: rise .42s ease both .48s; }
 
 .result-card__label {
   font-family: var(--font-display);
@@ -1401,11 +1414,13 @@ body { display: flex; align-items: center; justify-content: center; }
 #title-layer {
   position: absolute;
   inset: 0;
-  z-index: 200;              /* z-ladder: stage 0 · chat 50 · choices/sysmenu 60 · cue 65 · overlay/map 70 · backlog 75 · phone/settings-btn 80 · toast 230 · title 200 · settings-panel 210 · save 220 */
+  z-index: 200;              /* z-ladder: stage 0 · sprite 5 · textbox 10 · chat 50 · choices/sysmenu 60 · cue 65 · overlay/map 85 · backlog 75 · phone/settings-btn 80 · toast 230 · title 200 · settings-panel 210 · save 220 */
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: opacity .35s ease;
 }
+#title-layer.is-leaving { opacity: 0; pointer-events: none; }   /* 타이틀→게임 페이드아웃 */
 
 #title-layer.hidden {
   display: none !important;
@@ -2089,7 +2104,7 @@ body { display: flex; align-items: center; justify-content: center; }
 /* ── (F) ‘클릭/터치하면 다음’ 깜빡임 큐 ──────────────────────────────── */
 #advance-cue {
   position: absolute;
-  right: 24px;
+  right: max(24px, calc(50% - 380px + 24px));   /* PC: 760px 중앙 본문 우측에 붙임 / 모바일: 24px */
   bottom: calc(4.5% + env(safe-area-inset-bottom));   /* 홈 인디케이터에 안 가리게 */
   z-index: 65;                 /* 위: #choices(60) / 아래: #overlay(85) */
   pointer-events: none;
@@ -2114,6 +2129,7 @@ body { display: flex; align-items: center; justify-content: center; }
     scroll-behavior: auto !important;
   }
   #advance-cue { animation: none; opacity: .8; }   /* 무한 깜빡임·타이핑 점 등 정지(최종상태 보존) */
+  #sprite-layer { transform: none !important; }    /* 등장 translateY 1프레임 점프 방지 */
 }
 
 /* ── (D) 모바일(세로): 인게임 컨트롤이 채팅/대사를 가리지 않게 ─────────────── */
@@ -2144,7 +2160,8 @@ body { display: flex; align-items: center; justify-content: center; }
 .st-close-btn:focus-visible, .sl-close-btn:focus-visible, .bl-close-btn:focus-visible, .ph-close-btn:focus-visible,
 .st-panel__x:focus-visible, .sl-panel__x:focus-visible, .bl-panel__x:focus-visible,
 .st-reset:focus-visible, .map-panel__x:focus-visible, .map-panel__close:focus-visible,
-.result-card__close:focus-visible, .episode-card__close:focus-visible {
+.result-card__close:focus-visible, .episode-card__close:focus-visible,
+.modal .close:focus-visible, .input-row button:focus-visible {
   outline: 3px solid var(--lav-deep);
   outline-offset: 2px;
 }
