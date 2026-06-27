@@ -168,6 +168,8 @@ async function boot() {
       await chat.send(a);
     },
     async pause() {
+      // flash(번쩍) 직후의 pause는 입력 대기 없이 자동 진행 — 번쩍이 멈춤처럼 보이지 않게
+      if (!isChatOpen && stage.isFlashPending && stage.isFlashPending()) { stage.consumeFlash(); await delay(200); return; }
       if (playback.isSkip()) { await delay(30); return; }
       if (playback.isAuto()) { await delay(900); return; }
       if (isChatOpen) {
@@ -185,6 +187,7 @@ async function boot() {
     async consult(a) {
       await overlay.consult(a);
       autosave();
+      overlay.toast({ text: '여기까지 저장됐어요' });   // 상담은 분기점 — 자동저장 됐음을 알림
     },
     async callScreen(a) {
       if (a.name === 'result_card') {

@@ -235,6 +235,8 @@ body { display: flex; align-items: center; justify-content: center; }
 #choices button:focus-visible { outline: 3px solid var(--lav-deep); outline-offset: 3px; }
 /* 등장 직후 320ms 입력잠금 구간 — 흐리게 '아직 준비중' 신호(가드는 menu.js) */
 #choices.is-arming button { opacity: .55; cursor: default; }
+#choices .choice-prompt { transition: opacity .3s ease; }
+#choices.is-arming .choice-prompt { opacity: .7; }   /* 프롬프트도 같이 흐리게(버튼만 흐려 어긋남 방지) */
 
 /* ── Task 10: 마실 채팅 UI — pastel refresh ── */
 #chat {
@@ -2029,6 +2031,8 @@ body { display: flex; align-items: center; justify-content: center; }
   border: 1.5px solid rgba(255,255,255,.85);
   box-shadow: 0 4px 10px -6px rgba(180,140,160,.35);
 }
+/* 최신(맨 아래) 줄 강조 — 어디까지 봤는지 한눈에 */
+.bl-scroll > .bl-entry:last-child { border-left: 3px solid var(--blush-deep); }
 
 /* Narration entries: slightly dimmer, no name */
 .bl-entry--narration {

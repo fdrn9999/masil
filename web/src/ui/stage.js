@@ -50,6 +50,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
   let _curDir = null;
   let _shownOnce = false;   // 첫 장면은 트랜지션 없이 즉시
   let _commitId = 0;        // 진행 중 크로스페이드 commit 경합 방지
+  let _flashPending = false; // flash 직후의 pause는 자동 진행(번쩍이어야 할 게 입력대기 되지 않게)
 
   function imgPath(bg) { _curDir = deviceDir(); return 'images/bg/' + _curDir + '/bg_' + bg + '.png'; }
   function loadInto(el, path) {
@@ -89,6 +90,7 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
     }
     if (t.kind === 'flash') {                          // 흰/검 플래시 → 새 배경 노출
       _commitId++;
+      _flashPending = true;
       stage.style.backgroundColor = color; stage.style.backgroundImage = 'none';
       if (path) loadInto(stage, path);
       nextBg.style.transition = 'none';
@@ -136,8 +138,11 @@ export function makeStage(root, backgrounds, playback = null, typewriter = null)
       _curBg = a.bg;
       applyBg(a.bg, a.with);   // with: slowfade/dissolve/Dissolve(n)/flash_* → 크로스페이드/플래시
     },
+    isFlashPending() { return _flashPending; },
+    consumeFlash() { _flashPending = false; },
 
     say(a) {
+      _flashPending = false;   // flash 뒤에 대사가 오면 그건 일반 진행(자동 X)
       if (playback) playback.pushHistory({ who: a.who, name: a.name, text: a.text });
 
       return new Promise(resolve => {
